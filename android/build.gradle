@@ -1,21 +1,30 @@
 buildscript {
-    ext {
-        buildToolsVersion = "36.0.0"
-        minSdkVersion = 24
-        compileSdkVersion = 36
-        targetSdkVersion = 36
-        ndkVersion = "27.1.12297006"
-        kotlinVersion = "2.1.20"
-    }
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath("com.android.tools.build:gradle")
-        classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
-    }
+  ext {
+    buildToolsVersion = "35.0.0"
+    minSdkVersion = 24
+    compileSdkVersion = 35
+    targetSdkVersion = 35
+    kotlinVersion = "1.9.24"
+    ndkVersion = "26.3.11579264"
+  }
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath("com.android.tools.build:gradle:8.5.2")
+    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+    // DO NOT add com.facebook.react:react-native-gradle-plugin here when using includeBuild
+  }
 }
 
-apply plugin: "com.facebook.react.rootproject"
+allprojects {
+  repositories {
+    mavenCentral()
+    google()
+  }
+}
+
+tasks.register("clean", Delete) {
+  delete rootProject.buildDir
+}
