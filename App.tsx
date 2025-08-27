@@ -6,13 +6,14 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { StatusBar, useColorScheme, View, Text, ActivityIndicator } from 'react-native';
+import { StatusBar, useColorScheme, View, Text, ActivityIndicator, Animated } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import DatabaseService from './src/database/DatabaseService';
 import { RootStackParamList, TabParamList } from './src/types';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // Import screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -27,6 +28,25 @@ import KalaamScreen from './src/screens/KalaamScreen';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createStackNavigator<RootStackParamList>();
+
+function AnimatedTabIcon({ name, color, size, focused }: { name: any; color: string; size: number; focused: boolean }) {
+  const scale = React.useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.spring(scale, {
+      toValue: focused ? 1.15 : 1,
+      useNativeDriver: true,
+      friction: 5,
+      tension: 200,
+    }).start();
+  }, [focused, scale]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <MaterialCommunityIcons name={name} color={color} size={size} />
+    </Animated.View>
+  );
+}
 
 function TabNavigator() {
   return (
@@ -51,8 +71,8 @@ function TabNavigator() {
         component={AddLyricsScreen}
         options={{
           tabBarLabel: 'Add Lyrics',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>📝</Text>
+          tabBarIcon: ({ color, size, focused }) => (
+            <AnimatedTabIcon name="text-box-plus" color={color} size={size} focused={focused ?? false} />
           ),
         }}
       />
@@ -61,8 +81,8 @@ function TabNavigator() {
         component={SearchScreen}
         options={{
           tabBarLabel: 'Search',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>🔍</Text>
+          tabBarIcon: ({ color, size, focused }) => (
+            <AnimatedTabIcon name="magnify" color={color} size={size} focused={focused ?? false} />
           ),
         }}
       />
@@ -71,8 +91,8 @@ function TabNavigator() {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>🏠</Text>
+          tabBarIcon: ({ color, size, focused }) => (
+            <AnimatedTabIcon name="home-variant" color={color} size={size} focused={focused ?? false} />
           ),
         }}
       />
@@ -81,8 +101,8 @@ function TabNavigator() {
         component={FavouritesScreen}
         options={{
           tabBarLabel: 'Favourites',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>❤️</Text>
+          tabBarIcon: ({ color, size, focused }) => (
+            <AnimatedTabIcon name="heart" color={color} size={size} focused={focused ?? false} />
           ),
         }}
       />
@@ -91,8 +111,8 @@ function TabNavigator() {
         component={SettingsScreen}
         options={{
           tabBarLabel: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>⚙️</Text>
+          tabBarIcon: ({ color, size, focused }) => (
+            <AnimatedTabIcon name="cog" color={color} size={size} focused={focused ?? false} />
           ),
         }}
       />
@@ -150,7 +170,7 @@ function App() {
             headerShown: false,
           }}
         >
-          <Stack.Screen name="Home" component={TabNavigator} />
+          <Stack.Screen name="Tabs" component={TabNavigator} />
           <Stack.Screen name="Masaib" component={MasaibScreen} />
           <Stack.Screen name="Poet" component={PoetScreen} />
           <Stack.Screen name="Reciter" component={ReciterScreen} />

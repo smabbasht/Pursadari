@@ -1,11 +1,17 @@
+import AppHeader from '../components/AppHeader';
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 export default function SearchScreen() {
   return (
     <SafeAreaView style={styles.container}>
+      <AppHeader />
       <View style={styles.content}>
-        <Text style={styles.icon}>🔍</Text>
+        <View style={styles.iconWrap}>
+          <MaterialCommunityIcons name="magnify" size={48} color="#16a34a" />
+        </View>
         <Text style={styles.title}>Search</Text>
         <Text style={styles.subtitle}>Search across all nohas</Text>
         <Text style={styles.comingSoon}>Coming soon...</Text>
@@ -25,8 +31,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
   },
-  icon: {
-    fontSize: 64,
+  iconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    backgroundColor: '#ecfdf5',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
   },
   title: {

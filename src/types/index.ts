@@ -38,7 +38,7 @@ export interface KalaamDetailResponse {
 }
 
 export type RootStackParamList = {
-  Home: undefined;
+  Tabs: undefined;
   Masaib: { masaib: string };
   Poet: { poet: string };
   Reciter: { reciter: string };

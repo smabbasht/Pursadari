@@ -15,6 +15,11 @@ export class DatabaseService {
         createFromLocation: '~database.sqlite',
       });
       console.log('Database initialized successfully');
+
+      // Ensure favourites table exists
+      await this.db.executeSql(
+        'CREATE TABLE IF NOT EXISTS favourites (kalaam_id INTEGER PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)'
+      );
     } catch (error) {
       console.error('Failed to initialize database:', error);
       throw error;
@@ -180,6 +185,43 @@ export class DatabaseService {
     }
     
     return groups;
+  }
+
+  // FAVOURITES
+  async addFavourite(kalaamId: number): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    await this.db.executeSql('INSERT OR REPLACE INTO favourites (kalaam_id) VALUES (?)', [kalaamId]);
+  }
+
+  async removeFavourite(kalaamId: number): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    await this.db.executeSql('DELETE FROM favourites WHERE kalaam_id = ?', [kalaamId]);
+  }
+
+  async isFavourite(kalaamId: number): Promise<boolean> {
+    if (!this.db) throw new Error('Database not initialized');
+    const [result] = await this.db.executeSql('SELECT 1 FROM favourites WHERE kalaam_id = ? LIMIT 1', [kalaamId]);
+    return result.rows.length > 0;
+  }
+
+  async getFavouriteKalaams(page: number = 1, limit: number = 50): Promise<KalaamListResponse> {
+    if (!this.db) throw new Error('Database not initialized');
+    const offset = (page - 1) * limit;
+
+    const [countResult] = await this.db.executeSql('SELECT COUNT(*) as total FROM favourites');
+    const total = countResult.rows.item(0).total;
+
+    const [result] = await this.db.executeSql(
+      'SELECT k.* FROM favourites f JOIN kalaam k ON k.id = f.kalaam_id ORDER BY f.created_at DESC LIMIT ? OFFSET ?',
+      [limit, offset]
+    );
+
+    const kalaams: Kalaam[] = [];
+    for (let i = 0; i < result.rows.length; i++) {
+      kalaams.push(result.rows.item(i));
+    }
+
+    return { kalaams, total, page, limit };
   }
 
   async close(): Promise<void> {
