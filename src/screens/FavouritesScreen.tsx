@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 import AppHeader from '../components/AppHeader';
@@ -13,14 +13,17 @@ type Nav = StackNavigationProp<RootStackParamList>;
 
 export default function FavouritesScreen() {
   const navigation = useNavigation<Nav>();
+  const isFocused = useIsFocused();
   const [data, setData] = useState<KalaamListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const limit = 50;
 
   useEffect(() => {
-    load();
-  }, [page]);
+    if (isFocused) {
+      load();
+    }
+  }, [isFocused, page]);
 
   const load = async () => {
     try {
@@ -59,7 +62,10 @@ export default function FavouritesScreen() {
           <View style={styles.listCard}>
             {data.kalaams.map((k) => (
               <View key={k.id} style={styles.itemRow}>
-                <TouchableOpacity style={{ flex: 1 }} onPress={() => navigation.navigate('Kalaam', { id: k.id })}>
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  onPress={() => navigation.navigate('Home' as never, { screen: 'Kalaam', params: { id: k.id } } as never)}
+                >
                   <Text style={styles.itemTitle}>{k.title}</Text>
                   <View style={styles.metaRow}>
                     {k.reciter ? (

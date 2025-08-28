@@ -12,16 +12,22 @@ export class DatabaseService {
       this.db = await SQLite.openDatabase({
         name: 'database.sqlite',
         location: 'default',
-        createFromLocation: '~database.sqlite',
+        // 1 = copy prepopulated DB from android/app/src/main/assets/www/<name>
+        createFromLocation: 1 as any,
       });
       console.log('Database initialized successfully');
 
-      // Ensure favourites table exists
       await this.db.executeSql(
         'CREATE TABLE IF NOT EXISTS favourites (kalaam_id INTEGER PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)'
       );
     } catch (error) {
-      console.error('Failed to initialize database:', error);
+      try {
+        console.error('Failed to initialize database:', error);
+      } catch (_) {
+        // Fallback in case error object is not serializable
+        // eslint-disable-next-line no-console
+        console.log('Failed to initialize database (non-serializable error)');
+      }
       throw error;
     }
   }
@@ -187,7 +193,6 @@ export class DatabaseService {
     return groups;
   }
 
-  // FAVOURITES
   async addFavourite(kalaamId: number): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
     await this.db.executeSql('INSERT OR REPLACE INTO favourites (kalaam_id) VALUES (?)', [kalaamId]);

@@ -112,7 +112,11 @@ export default function HomeScreen() {
 
       <View style={styles.browseLabelWrap}>
         <View style={styles.browseChip}>
-          <MaterialCommunityIcons name="book-open-variant" size={16} color="#ffffff" />
+          <MaterialCommunityIcons
+            name={browseCategory === 'masaib' ? 'book-open-variant' : browseCategory === 'poet' ? 'feather' : 'account-music'}
+            size={16}
+            color="#ffffff"
+          />
           <Text style={styles.browseLabel}>Browse by:</Text>
         </View>
       </View>
@@ -147,7 +151,11 @@ export default function HomeScreen() {
             <PressableCard key={index} onPress={getItemLink(item)}>
               <View style={styles.listItem}>
                 <View style={styles.itemIconWrap}>
-                  <MaterialCommunityIcons name="music" size={18} color="#16a34a" />
+                  <MaterialCommunityIcons
+                    name={browseCategory === 'masaib' ? 'book-open-variant' : browseCategory === 'poet' ? 'feather' : 'account-music'}
+                    size={18}
+                    color="#16a34a"
+                  />
                 </View>
                 <View style={styles.itemContent}>
                   <Text style={styles.itemName} numberOfLines={2}>{getItemName(item)}</Text>

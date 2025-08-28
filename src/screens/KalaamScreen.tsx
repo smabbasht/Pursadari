@@ -1,15 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
 import { RouteProp } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { WebView } from 'react-native-webview';
+import { useSettings } from '../context/SettingsContext';
 
 import DatabaseService from '../database/DatabaseService';
 import { RootStackParamList, Kalaam } from '../types';
 import AppHeader from '../components/AppHeader';
 
 type KalaamRoute = RouteProp<RootStackParamList, 'Kalaam'>;
+
+function toYouTubeEmbed(url?: string): string {
+  if (!url) return 'about:blank';
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace('www.', '');
+    if (host === 'youtu.be') {
+      return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+    }
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      const v = u.searchParams.get('v');
+      if (v) return `https://www.youtube.com/embed/${v}`;
+      if (u.pathname.startsWith('/embed/')) return url;
+    }
+    return url;
+  } catch {
+    return 'about:blank';
+  }
+}
 
 export default function KalaamScreen() {
   const route = useRoute<KalaamRoute>();
@@ -20,6 +41,8 @@ export default function KalaamScreen() {
   const [error, setError] = useState<string | null>(null);
   const [language, setLanguage] = useState<'english' | 'urdu'>('english');
   const [isFavourite, setIsFavourite] = useState(false);
+  const screenWidth = Dimensions.get('window').width;
+  const { fontScale } = useSettings();
 
   useEffect(() => {
     load();
@@ -94,22 +117,48 @@ export default function KalaamScreen() {
         </View>
 
         <View style={[styles.card, styles.maxWidth]}>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Reciter:</Text>
-            <Text style={styles.detailValue}>{kalaam.reciter || 'N/A'}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Poet:</Text>
-            <Text style={styles.detailValue}>{kalaam.poet || 'N/A'}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Masaib:</Text>
-            <Text style={styles.detailValue}>{kalaam.masaib || 'N/A'}</Text>
+          <View style={styles.metaColumn}>
+            <View style={styles.metaRowLine}>
+              <Text style={styles.metaLabel}>Reciter:</Text>
+              <View style={styles.metaChipFull}>
+                <MaterialCommunityIcons name="account-music" size={16} color="#6b7280" />
+                <Text style={styles.metaText}>{kalaam.reciter || 'N/A'}</Text>
+              </View>
+            </View>
+            <View style={styles.metaRowLine}>
+              <Text style={styles.metaLabel}>Poet:</Text>
+              <View style={styles.metaChipFull}>
+                <MaterialCommunityIcons name="feather" size={16} color="#6b7280" />
+                <Text style={styles.metaText}>{kalaam.poet || 'N/A'}</Text>
+              </View>
+            </View>
+            <View style={styles.metaRowLine}>
+              <Text style={styles.metaLabel}>Masaib:</Text>
+              <View style={styles.metaChipFull}>
+                <MaterialCommunityIcons name="book-open-variant" size={16} color="#6b7280" />
+                <Text style={styles.metaText}>{kalaam.masaib || 'N/A'}</Text>
+              </View>
+            </View>
           </View>
         </View>
 
+        {kalaam.yt_link ? (
+          <View style={[styles.card, styles.maxWidth, { overflow: 'hidden' }]}>
+            <View style={{ width: '100%', aspectRatio: 16/9, borderRadius: 8, overflow: 'hidden' }}>
+              <WebView
+                source={{ uri: toYouTubeEmbed(kalaam.yt_link) }}
+                allowsFullscreenVideo
+                javaScriptEnabled
+                domStorageEnabled
+                originWhitelist={["*"]}
+                style={{ backgroundColor: '#000000' }}
+              />
+            </View>
+          </View>
+        ) : null}
+
         {(kalaam.lyrics_urdu || kalaam.lyrics_eng) ? (
-          <View style={[styles.card, styles.maxWidth]}>
+          <View style={[styles.maxWidth, styles.flatSection]}>
             <View style={styles.languageToggle}>
               <TouchableOpacity
                 style={[styles.languageButton, language === 'english' && styles.languageButtonActive]}
@@ -129,9 +178,9 @@ export default function KalaamScreen() {
 
         <View style={[styles.card, styles.maxWidth]}>
           {language === 'english' && kalaam.lyrics_eng ? (
-            <Text style={styles.lyricsText}>{kalaam.lyrics_eng}</Text>
+            <Text style={[styles.lyricsText, styles.centeredText, { fontSize: 16 * fontScale, lineHeight: 26 * fontScale }]}>{kalaam.lyrics_eng}</Text>
           ) : language === 'urdu' && kalaam.lyrics_urdu ? (
-            <Text style={[styles.lyricsText, styles.urduText]}>{kalaam.lyrics_urdu}</Text>
+            <Text style={[styles.lyricsText, styles.urduText, styles.centeredText, { fontSize: 16 * fontScale, lineHeight: 26 * fontScale }]}>{kalaam.lyrics_urdu}</Text>
           ) : (
             <Text style={styles.noLyricsText}>
               {language === 'english' ? 'English lyrics not available.' : 'اردو کے بول دستیاب نہیں ہیں۔'}
@@ -151,15 +200,19 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: 'bold', color: '#111827', textAlign: 'center', marginBottom: 8 },
   favButton: { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', backgroundColor: '#f3f4f6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, marginTop: 8 },
   favButtonText: { marginLeft: 6, color: '#374151', fontWeight: '600' },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  detailLabel: { fontSize: 16, fontWeight: '600', color: '#374151' },
-  detailValue: { fontSize: 16, color: '#6b7280', textAlign: 'right', flex: 1, marginLeft: 16 },
-  languageToggle: { flexDirection: 'row', backgroundColor: '#f3f4f6', borderRadius: 25, padding: 4 },
-  languageButton: { flex: 1, paddingVertical: 12, paddingHorizontal: 20, borderRadius: 21, alignItems: 'center' },
+  metaColumn: { gap: 8 },
+  metaRowLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  metaLabel: { fontWeight: '700', color: '#374151' },
+  metaChipFull: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 9999, paddingHorizontal: 10, paddingVertical: 4 },
+  metaText: { marginLeft: 6, color: '#374151' },
+  flatSection: { backgroundColor: 'transparent', paddingTop: 4, paddingBottom: 8 },
+  languageToggle: { alignSelf: 'center', flexDirection: 'row', backgroundColor: '#f3f4f6', borderRadius: 9999, padding: 3 },
+  languageButton: { minWidth: 90, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 9999, alignItems: 'center' },
   languageButtonActive: { backgroundColor: '#16a34a' },
-  languageButtonText: { fontSize: 16, fontWeight: '600', color: '#6b7280' },
+  languageButtonText: { fontSize: 13, fontWeight: '700', color: '#6b7280' },
   languageButtonTextActive: { color: '#ffffff' },
-  lyricsText: { fontSize: 16, lineHeight: 24, color: '#111827' },
+  lyricsText: { fontSize: 16, lineHeight: 26, color: '#111827' },
+  centeredText: { textAlign: 'center' },
   urduText: { textAlign: 'right', writingDirection: 'rtl' },
   noLyricsText: { fontSize: 16, color: '#6b7280', textAlign: 'center', fontStyle: 'italic' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
