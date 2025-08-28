@@ -1,29 +1,87 @@
 
-apply plugin: "com.android.application"
-apply plugin: "org.jetbrains.kotlin.android"
-apply plugin: "com.facebook.react"
+plugins {
+  id 'com.android.application'
+  id 'org.jetbrains.kotlin.android'
+  id 'com.facebook.react'
+}
+
+// Load keystore properties
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+  keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
 
 react {
   autolinkLibrariesWithApp()
+  hermesEnabled = true
 }
-pluginManagement {
-  includeBuild("../node_modules/@react-native/gradle-plugin")
-  repositories {
-    gradlePluginPortal()
-    mavenCentral()
-    google()
+
+// Ensure autolinking input exists (workaround when settings plugin doesn't generate it)
+tasks.register("ensureAutolinkingJson") {
+  doLast {
+    def autolinkDir = file("$rootDir/build/generated/autolinking")
+    if (!autolinkDir.exists()) {
+      autolinkDir.mkdirs()
+    }
+    def autolinkFile = file("$autolinkDir/autolinking.json")
+    if (!autolinkFile.exists() || autolinkFile.text.trim().isEmpty()) {
+      autolinkFile.text = '{"project":{"android":{"packageName":"com.nauhaarchiveapp"}},"dependencies":[]}'
+    }
   }
 }
 
-dependencyResolutionManagement {
-  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-  repositories {
-    mavenCentral()
-    google()
-    maven { url("$rootDir/../node_modules/react-native/android") }
-    maven { url("$rootDir/../node_modules/jsc-android/dist") }
+tasks.named("generateAutolinkingPackageList").configure { dependsOn("ensureAutolinkingJson") }
+
+android {
+  namespace "com.nauhaarchiveapp"
+  compileSdkVersion 35
+
+  defaultConfig {
+    applicationId "com.nauhaarchiveapp"
+    minSdkVersion 24
+    targetSdkVersion 35
+    versionCode 2
+    versionName "1.0.1"
+    buildConfigField "boolean", "IS_HERMES_ENABLED", "true"
+  }
+
+  signingConfigs {
+    debug {
+      storeFile file('debug.keystore')
+      storePassword 'android'
+      keyAlias 'androiddebugkey'
+      keyPassword 'android'
+    }
+    release {
+      if (keystorePropertiesFile.exists()) {
+        storeFile file(keystoreProperties['storeFile'])
+        storePassword keystoreProperties['storePassword']
+        keyAlias keystoreProperties['keyAlias']
+        keyPassword keystoreProperties['keyPassword']
+      }
+    }
+  }
+
+  buildTypes {
+    debug {
+      signingConfig signingConfigs.debug
+    }
+    release {
+      signingConfig signingConfigs.release
+      minifyEnabled true
+      shrinkResources true
+      proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+    }
+  }
+
+  buildFeatures {
+    buildConfig true
   }
 }
 
-rootProject.name = "NauhaArchiveApp"
-include(":app")
+dependencies {
+  implementation 'androidx.appcompat:appcompat:1.6.1'
+  implementation "com.facebook.react:react-android:0.81.0"
+  implementation("com.facebook.react:hermes-android:0.81.0")
+}

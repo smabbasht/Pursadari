@@ -4,7 +4,7 @@ buildscript {
     minSdkVersion = 24
     compileSdkVersion = 35
     targetSdkVersion = 35
-    kotlinVersion = "1.9.24"
+    kotlinVersion = "2.1.20"
     ndkVersion = "26.3.11579264"
   }
   repositories {
@@ -12,17 +12,15 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath("com.android.tools.build:gradle:8.5.2")
+    classpath("com.android.tools.build:gradle:8.7.1")
     classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-    // DO NOT add com.facebook.react:react-native-gradle-plugin here when using includeBuild
   }
 }
 
-allprojects {
-  repositories {
-    mavenCentral()
-    google()
-  }
+subprojects { project ->
+  project.ext.set("compileSdkVersion", rootProject.ext.compileSdkVersion)
+  project.ext.set("minSdkVersion", rootProject.ext.minSdkVersion)
+  project.ext.set("targetSdkVersion", rootProject.ext.targetSdkVersion)
 }
 
 tasks.register("clean", Delete) {
