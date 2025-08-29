@@ -1,6 +1,14 @@
 import AppHeader from '../components/AppHeader';
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import DatabaseService from '../database/DatabaseService';
@@ -16,15 +24,51 @@ export default function SearchScreen() {
   const [results, setResults] = useState<Kalaam[]>([]);
   const navigation = useNavigation<Nav>();
 
-  const onSearch = async () => {
-    try {
-      setLoading(true);
-      const res = await DatabaseService.searchKalaams(query, 1, 100);
-      setResults(res.kalaams);
-    } finally {
+  // debounce timer + request token to drop stale responses
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reqIdRef = useRef(0);
+
+  const runSearch = async (q: string) => {
+    // empty query -> clear state, no DB call
+    const qTrim = q.trim();
+    if (!qTrim) {
+      setResults([]);
       setLoading(false);
+      return;
+    }
+
+    const myReq = ++reqIdRef.current;
+    setLoading(true);
+    try {
+      const res = await DatabaseService.searchKalaams(qTrim, 1, 100);
+      if (reqIdRef.current === myReq) setResults(res.kalaams);
+    } catch (e) {
+      // swallow or log; keep UI stable
+      console.warn('search error', e);
+      if (reqIdRef.current === myReq) setResults([]);
+    } finally {
+      if (reqIdRef.current === myReq) setLoading(false);
     }
   };
+
+  const onChange = (text: string) => {
+    setQuery(text);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => runSearch(text), 200);
+  };
+
+  const onSearchPress = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    runSearch(query);
+  };
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      reqIdRef.current++; // invalidate inflight
+    },
+    [],
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -36,34 +80,44 @@ export default function SearchScreen() {
             placeholder="Search title..."
             style={styles.input}
             value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={onSearch}
+            onChangeText={onChange}
+            onSubmitEditing={onSearchPress}
             returnKeyType="search"
             placeholderTextColor="#9ca3af"
             selectionColor="#16a34a"
           />
-          <TouchableOpacity style={styles.searchBtn} onPress={onSearch}>
+          <TouchableOpacity style={styles.searchBtn} onPress={onSearchPress}>
             <Text style={styles.searchBtnText}>Search</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {loading ? (
-        <View style={{ padding: 16 }}><ActivityIndicator color="#16a34a" /></View>
+        <View style={{ padding: 16 }}>
+          <ActivityIndicator color="#16a34a" />
+        </View>
       ) : (
         <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
-          {results.map((k) => (
+          {results.map(k => (
             <TouchableOpacity
               key={k.id}
               style={styles.itemRow}
               onPress={() =>
-                // Navigate into the nested Home stack -> Kalaam
-                navigation.navigate('Home' as never, { screen: 'Kalaam', params: { id: k.id } } as never)
+                navigation.navigate(
+                  'Home' as never,
+                  { screen: 'Kalaam', params: { id: k.id } } as never,
+                )
               }
             >
               <MaterialCommunityIcons name="music" size={18} color="#16a34a" />
-              <Text style={styles.itemTitle} numberOfLines={2}>{k.title}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={22} color="#9ca3af" />
+              <Text style={styles.itemTitle} numberOfLines={2}>
+                {k.title}
+              </Text>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={22}
+                color="#9ca3af"
+              />
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -73,14 +127,32 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#ffffff', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
-  input: { flex: 1, fontSize: 15 },
-  searchBtn: { backgroundColor: '#16a34a', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  input: { flex: 1, fontSize: 15, color: '#111827' },
+  searchBtn: {
+    backgroundColor: '#16a34a',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   searchBtnText: { color: '#ffffff', fontWeight: '700' },
-  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#ffffff', borderRadius: 12, padding: 12, marginBottom: 10 },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
   itemTitle: { flex: 1, color: '#111827', fontWeight: '600' },
 });

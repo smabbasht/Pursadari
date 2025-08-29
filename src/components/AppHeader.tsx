@@ -6,9 +6,12 @@ export default function AppHeader() {
     <View style={styles.header}>
       <View style={styles.innerRow}>
         <View style={styles.logoWrap}>
-          <Image source={require('../../assets/favicon.png')} style={styles.logo} />
+          <Image
+            source={require('../../assets/favicon.png')}
+            style={styles.logo}
+          />
         </View>
-        <Text style={styles.title}>NauhayArchive</Text>
+        <Text style={styles.title}>Bayaaz</Text>
       </View>
     </View>
   );

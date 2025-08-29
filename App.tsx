@@ -6,11 +6,25 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { StatusBar, useColorScheme, View, Text, ActivityIndicator, Animated } from 'react-native';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import {
+  StatusBar,
+  useColorScheme,
+  View,
+  Text,
+  ActivityIndicator,
+  Animated,
+} from 'react-native';
+import {
+  NavigationContainer,
+  DefaultTheme,
+  DarkTheme,
+} from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { SettingsProvider, useSettings } from './src/context/SettingsContext';
 import DatabaseService from './src/database/DatabaseService';
 import { RootStackParamList, TabParamList } from './src/types';
@@ -30,7 +44,17 @@ import KalaamScreen from './src/screens/KalaamScreen';
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createStackNavigator<RootStackParamList>();
 
-function AnimatedTabIcon({ name, color, size, focused }: { name: any; color: string; size: number; focused: boolean }) {
+function AnimatedTabIcon({
+  name,
+  color,
+  size,
+  focused,
+}: {
+  name: any;
+  color: string;
+  size: number;
+  focused: boolean;
+}) {
   const scale = React.useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -73,7 +97,12 @@ function TabNavigator() {
         options={{
           tabBarLabel: 'Add Lyrics',
           tabBarIcon: ({ color, size, focused }) => (
-            <AnimatedTabIcon name="text-box-plus" color={color} size={size} focused={focused ?? false} />
+            <AnimatedTabIcon
+              name="text-box-plus"
+              color={color}
+              size={size}
+              focused={focused ?? false}
+            />
           ),
         }}
       />
@@ -83,7 +112,12 @@ function TabNavigator() {
         options={{
           tabBarLabel: 'Search',
           tabBarIcon: ({ color, size, focused }) => (
-            <AnimatedTabIcon name="magnify" color={color} size={size} focused={focused ?? false} />
+            <AnimatedTabIcon
+              name="magnify"
+              color={color}
+              size={size}
+              focused={focused ?? false}
+            />
           ),
         }}
       />
@@ -93,7 +127,12 @@ function TabNavigator() {
         options={{
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, size, focused }) => (
-            <AnimatedTabIcon name="home-variant" color={color} size={size} focused={focused ?? false} />
+            <AnimatedTabIcon
+              name="home-variant"
+              color={color}
+              size={size}
+              focused={focused ?? false}
+            />
           ),
         }}
       />
@@ -103,7 +142,12 @@ function TabNavigator() {
         options={{
           tabBarLabel: 'Favourites',
           tabBarIcon: ({ color, size, focused }) => (
-            <AnimatedTabIcon name="heart" color={color} size={size} focused={focused ?? false} />
+            <AnimatedTabIcon
+              name="heart"
+              color={color}
+              size={size}
+              focused={focused ?? false}
+            />
           ),
         }}
       />
@@ -113,7 +157,12 @@ function TabNavigator() {
         options={{
           tabBarLabel: 'Settings',
           tabBarIcon: ({ color, size, focused }) => (
-            <AnimatedTabIcon name="cog" color={color} size={size} focused={focused ?? false} />
+            <AnimatedTabIcon
+              name="cog"
+              color={color}
+              size={size}
+              focused={focused ?? false}
+            />
           ),
         }}
       />
@@ -133,7 +182,9 @@ function App() {
         await DatabaseService.init();
         setIsLoading(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to initialize app');
+        setError(
+          err instanceof Error ? err.message : 'Failed to initialize app',
+        );
         setIsLoading(false);
       }
     }
@@ -143,20 +194,51 @@ function App() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#ffffff',
+        }}
+      >
         <ActivityIndicator size="large" color="#16a34a" />
-        <Text style={{ marginTop: 16, fontSize: 16, color: '#374151' }}>Initializing NauhaArchive...</Text>
+        <Text style={{ marginTop: 16, fontSize: 16, color: '#374151' }}>
+          Initializing Bayaaz...
+        </Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
-        <Text style={{ fontSize: 18, color: '#dc2626', textAlign: 'center', marginHorizontal: 20 }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#ffffff',
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 18,
+            color: '#dc2626',
+            textAlign: 'center',
+            marginHorizontal: 20,
+          }}
+        >
           Error: {error}
         </Text>
-        <Text style={{ marginTop: 16, fontSize: 14, color: '#6b7280', textAlign: 'center', marginHorizontal: 20 }}>
+        <Text
+          style={{
+            marginTop: 16,
+            fontSize: 14,
+            color: '#6b7280',
+            textAlign: 'center',
+            marginHorizontal: 20,
+          }}
+        >
           Please restart the app or check your database file.
         </Text>
       </View>
@@ -192,7 +274,12 @@ function App() {
             options={{
               tabBarLabel: 'Add Lyrics',
               tabBarIcon: ({ color, size, focused }) => (
-                <AnimatedTabIcon name="text-box-plus" color={color} size={size} focused={focused ?? false} />
+                <AnimatedTabIcon
+                  name="text-box-plus"
+                  color={color}
+                  size={size}
+                  focused={focused ?? false}
+                />
               ),
             }}
           />
@@ -202,7 +289,12 @@ function App() {
             options={{
               tabBarLabel: 'Search',
               tabBarIcon: ({ color, size, focused }) => (
-                <AnimatedTabIcon name="magnify" color={color} size={size} focused={focused ?? false} />
+                <AnimatedTabIcon
+                  name="magnify"
+                  color={color}
+                  size={size}
+                  focused={focused ?? false}
+                />
               ),
             }}
           />
@@ -220,7 +312,12 @@ function App() {
             options={{
               tabBarLabel: 'Home',
               tabBarIcon: ({ color, size, focused }) => (
-                <AnimatedTabIcon name="home-variant" color={color} size={size} focused={focused ?? false} />
+                <AnimatedTabIcon
+                  name="home-variant"
+                  color={color}
+                  size={size}
+                  focused={focused ?? false}
+                />
               ),
             }}
           />
@@ -230,7 +327,12 @@ function App() {
             options={{
               tabBarLabel: 'Favourites',
               tabBarIcon: ({ color, size, focused }) => (
-                <AnimatedTabIcon name="heart" color={color} size={size} focused={focused ?? false} />
+                <AnimatedTabIcon
+                  name="heart"
+                  color={color}
+                  size={size}
+                  focused={focused ?? false}
+                />
               ),
             }}
           />
@@ -240,7 +342,12 @@ function App() {
             options={{
               tabBarLabel: 'Settings',
               tabBarIcon: ({ color, size, focused }) => (
-                <AnimatedTabIcon name="cog" color={color} size={size} focused={focused ?? false} />
+                <AnimatedTabIcon
+                  name="cog"
+                  color={color}
+                  size={size}
+                  focused={focused ?? false}
+                />
               ),
             }}
           />
