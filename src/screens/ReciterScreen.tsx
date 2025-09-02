@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { RouteProp } from '@react-navigation/native';
@@ -32,7 +39,11 @@ export default function ReciterScreen() {
   const load = async () => {
     try {
       setIsLoading(true);
-      const result = await DatabaseService.getKalaamsByReciter(reciter, page, limit);
+      const result = await DatabaseService.getKalaamsByReciter(
+        reciter,
+        page,
+        limit,
+      );
       setData(result);
       setError(null);
     } catch (e) {
@@ -71,13 +82,18 @@ export default function ReciterScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <AppHeader />
       <ScrollView style={styles.scrollView}>
         <View style={styles.headerCard}>
           <View style={styles.headerBanner}>
-            <Text style={styles.headerTitle}><MaterialCommunityIcons name="account-music" size={18} /> {reciter}</Text>
-            <Text style={styles.headerSubtitle}>{data?.total || 0} nohas by this reciter</Text>
+            <Text style={styles.headerTitle}>
+              <MaterialCommunityIcons name="account-music" size={18} />{' '}
+              {reciter}
+            </Text>
+            <Text style={styles.headerSubtitle}>
+              {data?.total || 0} nohas by this reciter
+            </Text>
           </View>
         </View>
 
@@ -89,48 +105,76 @@ export default function ReciterScreen() {
             </View>
           ) : data.kalaams.length > 0 ? (
             <View style={styles.listDivider}>
-              {data.kalaams.map((k) => (
-                <TouchableOpacity key={k.id} style={styles.itemRow} onPress={() => navigation.navigate('Kalaam', { id: k.id })}>
+              {data.kalaams.map(k => (
+                <TouchableOpacity
+                  key={k.id}
+                  style={styles.itemRow}
+                  onPress={() => navigation.navigate('Kalaam', { id: k.id })}
+                >
                   <View style={{ flex: 1 }}>
                     <Text style={styles.itemTitle}>{k.title}</Text>
                     <View style={styles.metaRow}>
                       {k.poet ? (
                         <View style={styles.metaChip}>
-                          <MaterialCommunityIcons name="feather" size={14} color="#6b7280" />
+                          <MaterialCommunityIcons
+                            name="feather"
+                            size={14}
+                            color="#6b7280"
+                          />
                           <Text style={styles.metaText}>{k.poet}</Text>
                         </View>
                       ) : null}
                       {k.masaib ? (
                         <View style={styles.metaChip}>
-                          <MaterialCommunityIcons name="book-open-variant" size={14} color="#6b7280" />
+                          <MaterialCommunityIcons
+                            name="book-open-variant"
+                            size={14}
+                            color="#6b7280"
+                          />
                           <Text style={styles.metaText}>{k.masaib}</Text>
                         </View>
                       ) : null}
                     </View>
                   </View>
-                  <MaterialCommunityIcons name="chevron-right" size={22} color="#9ca3af" />
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={22}
+                    color="#9ca3af"
+                  />
                 </TouchableOpacity>
               ))}
             </View>
           ) : (
-            <View style={styles.emptyState}><Text style={styles.emptyText}>No nohas found for this reciter.</Text></View>
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>
+                No nohas found for this reciter.
+              </Text>
+            </View>
           )}
         </View>
 
         {data && totalPages > 1 ? (
           <View style={styles.pagination}>
             <TouchableOpacity
-              onPress={() => setPage((p) => Math.max(1, p - 1))}
+              onPress={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              style={[styles.pageButton, page === 1 && styles.pageButtonDisabled]}
+              style={[
+                styles.pageButton,
+                page === 1 && styles.pageButtonDisabled,
+              ]}
             >
               <Text style={styles.pageButtonText}>Prev</Text>
             </TouchableOpacity>
-            <Text style={styles.pageIndicator}>{page} / {totalPages}</Text>
+            <Text style={styles.pageIndicator}>
+              {page} / {totalPages}
+            </Text>
             <TouchableOpacity
-              onPress={() => setPage((p) => (data && p < totalPages ? p + 1 : p))}
+              onPress={() => setPage(p => (data && p < totalPages ? p + 1 : p))}
               disabled={!data || page >= totalPages}
-              style={[styles.pageButton, (!data || page >= totalPages) && styles.pageButtonDisabled]}
+              style={[
+                styles.pageButton,
+                (!data || page >= totalPages) && styles.pageButtonDisabled,
+              ]}
             >
               <Text style={styles.pageButtonText}>Next</Text>
             </TouchableOpacity>
@@ -144,22 +188,62 @@ export default function ReciterScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9fafb' },
   scrollView: { flex: 1 },
-  headerCard: { backgroundColor: '#ffffff', borderRadius: 12, margin: 16, overflow: 'hidden', elevation: 2 },
-  headerBanner: { backgroundColor: '#16a34a', paddingVertical: 12, paddingHorizontal: 16 },
+  headerCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    margin: 16,
+    overflow: 'hidden',
+    elevation: 2,
+  },
+  headerBanner: {
+    backgroundColor: '#16a34a',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
   headerTitle: { color: '#ffffff', fontSize: 18, fontWeight: '700' },
   headerSubtitle: { color: '#d1fae5', fontSize: 13, marginTop: 4 },
-  listCard: { backgroundColor: '#ffffff', borderRadius: 12, marginHorizontal: 16, marginBottom: 16, elevation: 2 },
+  listCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    elevation: 2,
+  },
   loadingInline: { padding: 16, alignItems: 'center' },
   listDivider: { borderTopColor: '#f3f4f6', borderTopWidth: 1 },
-  itemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomColor: '#f3f4f6', borderBottomWidth: 1 },
-  itemTitle: { fontSize: 16, fontWeight: '600', color: '#111827', marginBottom: 4 },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomColor: '#f3f4f6',
+    borderBottomWidth: 1,
+  },
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
   metaRow: { flexDirection: 'row', gap: 12 },
   metaChip: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { fontSize: 12, color: '#6b7280', marginLeft: 4 },
   emptyState: { padding: 16, alignItems: 'center' },
   emptyText: { color: '#6b7280' },
-  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16, paddingVertical: 12 },
-  pageButton: { backgroundColor: '#16a34a', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
+  pagination: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    paddingVertical: 12,
+  },
+  pageButton: {
+    backgroundColor: '#16a34a',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
   pageButtonDisabled: { backgroundColor: '#9ca3af' },
   pageButtonText: { color: '#ffffff', fontWeight: '600' },
   pageIndicator: { marginHorizontal: 12, color: '#6b7280' },

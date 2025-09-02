@@ -49,14 +49,14 @@ export class DatabaseService {
     const searchQuery = `%${query}%`;
 
     const [countResult] = await this.db.executeSql(
-      'SELECT COUNT(*) as total FROM kalaam WHERE title LIKE ?',
-      [searchQuery],
+      'SELECT COUNT(*) as total FROM kalaam WHERE title_normalized LIKE ? OR reciter LIKE ? OR poet LIKE ?',
+      [searchQuery, searchQuery, searchQuery],
     );
 
     const total = countResult.rows.item(0).total;
 
     const [result] = await this.db.executeSql(
-      'SELECT * FROM kalaam WHERE title LIKE ? OR reciter LIKE ? OR poet LIKE ? ORDER BY title LIMIT ? OFFSET ?',
+      'SELECT * FROM kalaam WHERE title_normalized LIKE ? OR reciter LIKE ? OR poet LIKE ? ORDER BY title LIMIT ? OFFSET ?',
       [searchQuery, searchQuery, searchQuery, limit, offset],
     );
 
@@ -114,7 +114,7 @@ export class DatabaseService {
     const total = countResult.rows.item(0).total;
 
     const [result] = await this.db.executeSql(
-      'SELECT * FROM kalaam WHERE poet is not null ORDER BY title LIMIT ? OFFSET ?',
+      'SELECT * FROM kalaam WHERE poet = ? ORDER BY title LIMIT ? OFFSET ?',
       [poet, limit, offset],
     );
 
@@ -189,7 +189,7 @@ export class DatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     const [result] = await this.db.executeSql(
-      'SELECT poet, COUNT(*) as count FROM kalaam GROUP BY poet ORDER BY count DESC',
+      'SELECT poet, COUNT(*) as count FROM kalaam where poet is not null GROUP BY poet ORDER BY count DESC',
     );
 
     const groups: PoetGroup[] = [];

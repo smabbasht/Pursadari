@@ -28,6 +28,68 @@ export default function SearchScreen() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reqIdRef = useRef(0);
 
+  const normalizeRomanUrduQuery = (input: string): string => {
+    const VOWELS = 'aeiou';
+
+    // Word-level canonicalizations for ultra-common tokens
+    const WORD_EQUIV: Array<[RegExp, string]> = [
+      [/\b(main|mein|mei|mn)\b/g, 'mai'],
+      [/\b(nahin|nahi|nahee|nai)\b/g, 'nahi'],
+      [/\b(hain+)\b/g, 'hain'],
+      [/\b(kya|kia|ky[aa])\b/g, 'kya'],
+      [/\b(mera+a*h*)\b/g, 'mera'],
+    ];
+
+    // Ordered character/digraph rules (apply in sequence)
+    const SEQ_RULES: Array<[RegExp, string]> = [
+      // drop punctuation, keep spaces
+      [/[^\w\s]/g, ' '],
+
+      // digraphs/phones
+      [/kh/g, 'x'],
+      [/gh/g, 'g'],
+      [/zh/g, 'z'],
+      [/ph/g, 'f'],
+      [/th/g, 't'],
+      [/dh/g, 'd'],
+      [/bh/g, 'b'],
+      [/q/g, 'k'],
+
+      // c → k before a/o/u; c → s before e/i/y
+      [/c(?=[aou])/g, 'k'],
+      [/c(?=[eiy])/g, 's'],
+
+      // long vowels
+      [/aa+/g, 'a'],
+      [/(ee+|ii+)/g, 'i'],
+      [/oo+/g, 'u'],
+
+      // ai/ei/ay family → ai
+      [/(ei|ay)/g, 'ai'],
+
+      // terminal h after a vowel → drop
+      [new RegExp(`([${VOWELS}])h\\b`, 'g'), '$1'],
+
+      // collapse repeats: vowels to max 2, consonants to 1
+      [new RegExp(`([${VOWELS}])\\1{2,}`, 'g'), '$1$1'],
+      [new RegExp(`([^${VOWELS}\\W])\\1+`, 'g'), '$1'],
+
+      // e/i and o/u collapse (after ai handling)
+      [/e/g, 'i'],
+      [/o/g, 'u'],
+    ];
+
+    let s = input.toLowerCase().trim();
+
+    for (const [pat, repl] of WORD_EQUIV) s = s.replace(pat, repl);
+    for (const [pat, repl] of SEQ_RULES) s = s.replace(pat, repl);
+
+    // normalize whitespace
+    s = s.replace(/\s+/g, ' ').trim();
+
+    return s;
+  };
+
   const runSearch = async (q: string) => {
     // empty query -> clear state, no DB call
     const qTrim = q.trim();
@@ -37,10 +99,12 @@ export default function SearchScreen() {
       return;
     }
 
+    const qNorm = normalizeRomanUrduQuery(qTrim);
+
     const myReq = ++reqIdRef.current;
     setLoading(true);
     try {
-      const res = await DatabaseService.searchKalaams(qTrim, 1, 100);
+      const res = await DatabaseService.searchKalaams(qNorm, 1, 100);
       if (reqIdRef.current === myReq) setResults(res.kalaams);
     } catch (e) {
       // swallow or log; keep UI stable
