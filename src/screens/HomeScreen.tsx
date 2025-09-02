@@ -216,7 +216,7 @@ export default function HomeScreen() {
         <AppHeader />
         <View style={styles.centerFill}>
           <Ring size={44} />
-          <Text style={styles.loadingText}>Loading NauhaArchive…</Text>
+          <Text style={styles.loadingText}>Loading Bayaaz…</Text>
         </View>
       </SafeAreaView>
     );

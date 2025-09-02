@@ -99,12 +99,12 @@ export default function SearchScreen() {
       return;
     }
 
-    const qNorm = normalizeRomanUrduQuery(qTrim);
+    // const qTrim = normalizeRomanUrduQuery(qTrim);
 
     const myReq = ++reqIdRef.current;
     setLoading(true);
     try {
-      const res = await DatabaseService.searchKalaams(qNorm, 1, 100);
+      const res = await DatabaseService.searchKalaams(qTrim, 1, 100);
       if (reqIdRef.current === myReq) setResults(res.kalaams);
     } catch (e) {
       // swallow or log; keep UI stable
