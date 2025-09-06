@@ -119,7 +119,7 @@ export default function AddLyricsScreen() {
           <TextInput
             value={title}
             onChangeText={setTitle}
-            placeholder="Enter the title of the nauha"
+            placeholder="Enter the title of the Kalaam"
             placeholderTextColor="#9ca3af"
             style={styles.input}
           />

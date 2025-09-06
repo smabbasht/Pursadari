@@ -1,15 +1,7 @@
-
 plugins {
-  id 'com.android.application'
-  id 'org.jetbrains.kotlin.android'
-  id 'com.facebook.react'
-}
-
-// Load keystore properties
-def keystorePropertiesFile = rootProject.file("keystore.properties")
-def keystoreProperties = new Properties()
-if (keystorePropertiesFile.exists()) {
-  keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+  id "com.android.application"
+  id "org.jetbrains.kotlin.android"
+  id "com.facebook.react"
 }
 
 react {
@@ -17,30 +9,14 @@ react {
   hermesEnabled = true
 }
 
-// Ensure autolinking input exists (workaround when settings plugin doesn't generate it)
-tasks.register("ensureAutolinkingJson") {
-  doLast {
-    def autolinkDir = file("$rootDir/build/generated/autolinking")
-    if (!autolinkDir.exists()) {
-      autolinkDir.mkdirs()
-    }
-    def autolinkFile = file("$autolinkDir/autolinking.json")
-    if (!autolinkFile.exists() || autolinkFile.text.trim().isEmpty()) {
-      autolinkFile.text = '{"project":{"android":{"packageName":"com.nauhaarchiveapp"}},"dependencies":[]}'
-    }
-  }
-}
-
-tasks.named("generateAutolinkingPackageList").configure { dependsOn("ensureAutolinkingJson") }
-
 android {
-  namespace "com.nauhaarchiveapp"
-  compileSdkVersion 35
+  namespace = "com.bayaaz"
+  compileSdkVersion rootProject.ext.compileSdkVersion
 
   defaultConfig {
-    applicationId "com.nauhaarchiveapp"
-    minSdkVersion 24
-    targetSdkVersion 35
+    applicationId "com.bayaaz"
+    minSdkVersion rootProject.ext.minSdkVersion
+    targetSdkVersion rootProject.ext.targetSdkVersion
     versionCode 2
     versionName "1.0.1"
     buildConfigField "boolean", "IS_HERMES_ENABLED", "true"
@@ -48,40 +24,39 @@ android {
 
   signingConfigs {
     debug {
-      storeFile file('debug.keystore')
-      storePassword 'android'
-      keyAlias 'androiddebugkey'
-      keyPassword 'android'
+      storeFile file("debug.keystore")
+      storePassword "android"
+      keyAlias "androiddebugkey"
+      keyPassword "android"
     }
     release {
-      if (keystorePropertiesFile.exists()) {
-        storeFile file(keystoreProperties['storeFile'])
-        storePassword keystoreProperties['storePassword']
-        keyAlias keystoreProperties['keyAlias']
-        keyPassword keystoreProperties['keyPassword']
+      def f = rootProject.file("keystore.properties")
+      if (f.exists()) {
+        def p = new Properties(); p.load(new FileInputStream(f))
+        storeFile file(p["storeFile"])
+        storePassword p["storePassword"]
+        keyAlias p["keyAlias"]
+        keyPassword p["keyPassword"]
       }
     }
   }
 
   buildTypes {
-    debug {
-      signingConfig signingConfigs.debug
-    }
+    debug  { signingConfig = signingConfigs.debug }
     release {
-      signingConfig signingConfigs.release
-      minifyEnabled true
-      shrinkResources true
-      proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+      signingConfig = signingConfigs.release
+      minifyEnabled = true
+      shrinkResources = true
+      proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
     }
   }
 
-  buildFeatures {
-    buildConfig true
-  }
+  buildFeatures { buildConfig = true }
 }
 
 dependencies {
-  implementation 'androidx.appcompat:appcompat:1.6.1'
+  implementation "androidx.appcompat:appcompat:1.6.1"
   implementation "com.facebook.react:react-android:0.81.0"
-  implementation("com.facebook.react:hermes-android:0.81.0")
+  implementation "com.facebook.react:hermes-android:0.81.0"
+  implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.20"
 }
