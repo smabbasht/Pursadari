@@ -4,10 +4,12 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   Animated,
   Easing,
-  FlatList,
+  TextInput,
+  Dimensions,
+  Platform,
+  Keyboard,
 } from 'react-native';
 import {
   SafeAreaView,
@@ -34,6 +36,12 @@ const SLIDES = [
   { key: 'poet', icon: 'feather', label: 'Poet' },
   { key: 'reciter', icon: 'account-music', label: 'Reciter' },
 ] as const;
+
+const { width: SCREEN_W } = Dimensions.get('window');
+// Animated FlatList
+const AFlatList = Animated.createAnimatedComponent(
+  (require('react-native').FlatList as any)
+);
 
 function Ring({
   size = 36,
@@ -117,7 +125,7 @@ function PressableCard({
 
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  // const insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets();
 
   const [browseCategory, setBrowseCategory] =
     useState<BrowseCategory>('masaib');
@@ -128,6 +136,51 @@ export default function HomeScreen() {
   );
   const [initLoading, setInitLoading] = useState(true);
   const [navigating, setNavigating] = useState(false);
+
+  // --- Search UI state ---
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchAnim = useRef(new Animated.Value(0)).current; // 0=closed, 1=open
+  const inputRef = useRef<TextInput>(null);
+
+  // --- Keyboard-aware FAB offset ---
+  const baseFabBottom = React.useMemo(
+    () => 48 + Math.max(insets.bottom, 12),
+    [insets.bottom],
+  );
+  const kbAnim = useRef(new Animated.Value(0)).current; // keyboard height
+
+  useEffect(() => {
+    const showEvt =
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt =
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onShow = (e: any) => {
+      const h = e?.endCoordinates?.height ?? 0;
+      Animated.timing(kbAnim, {
+        toValue: h,
+        duration: Platform.OS === 'ios' ? e?.duration ?? 250 : 150,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: false,
+      }).start();
+    };
+    const onHide = (e: any) => {
+      Animated.timing(kbAnim, {
+        toValue: 0,
+        duration: Platform.OS === 'ios' ? e?.duration ?? 250 : 120,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: false,
+      }).start();
+    };
+
+    const s1 = Keyboard.addListener(showEvt, onShow);
+    const s2 = Keyboard.addListener(hideEvt, onHide);
+    return () => {
+      s1.remove();
+      s2.remove();
+    };
+  }, [kbAnim]);
 
   useEffect(() => {
     (async () => {
@@ -158,6 +211,12 @@ export default function HomeScreen() {
     return reciterGroups ?? [];
   }, [browseCategory, masaibGroups, poetGroups, reciterGroups]);
 
+  const labelForItem = (item: MasaibGroup | PoetGroup | ReciterGroup) => {
+    if (browseCategory === 'masaib') return (item as MasaibGroup).masaib;
+    if (browseCategory === 'poet') return (item as PoetGroup).poet;
+    return (item as ReciterGroup).reciter;
+  };
+
   const goToItem = (item: MasaibGroup | PoetGroup | ReciterGroup) => {
     setNavigating(true);
     try {
@@ -169,6 +228,10 @@ export default function HomeScreen() {
         navigation.navigate('Reciter', {
           reciter: (item as ReciterGroup).reciter,
         });
+      }
+      if (searchOpen) {
+        setSearchQuery('');
+        toggleSearch(false);
       }
     } finally {
       setTimeout(() => setNavigating(false), 250);
@@ -193,11 +256,7 @@ export default function HomeScreen() {
         </View>
         <View style={styles.itemContent}>
           <Text style={styles.itemName} numberOfLines={2}>
-            {browseCategory === 'masaib'
-              ? (item as MasaibGroup).masaib
-              : browseCategory === 'poet'
-              ? (item as PoetGroup).poet
-              : (item as ReciterGroup).reciter}
+            {labelForItem(item)}
           </Text>
           <Text style={styles.itemCount}>{item.count} nohas</Text>
         </View>
@@ -209,6 +268,55 @@ export default function HomeScreen() {
       </View>
     </PressableCard>
   );
+
+  // ---- Filter main list instead of dropdown ----
+  const displayedItems = useMemo(() => {
+    const src = items || [];
+    const q = searchQuery.trim().toLowerCase();
+    if (!searchOpen || q.length === 0) return src;
+    return src.filter((it: any) => labelForItem(it).toLowerCase().includes(q));
+  }, [items, searchOpen, searchQuery, browseCategory]);
+
+  // ---- Search UI animations ----
+  const toggleSearch = (open?: boolean) => {
+    const next = open ?? !searchOpen;
+    setSearchOpen(next);
+    Animated.timing(searchAnim, {
+      toValue: next ? 1 : 0,
+      duration: 220,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: false, // animating width/radius
+    }).start(({ finished }) => {
+      if (finished && next) {
+        setTimeout(() => inputRef.current?.focus(), 10);
+      } else if (!next) {
+        Keyboard.dismiss();
+      }
+    });
+  };
+
+  const barWidth = searchAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [56, Math.max(280, SCREEN_W - 32)],
+  });
+  const barRadius = searchAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [28, 14],
+  });
+  const barPaddingH = searchAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 12],
+  });
+  const iconRotate = searchAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '90deg'],
+  });
+
+  // --- Parallax “Browse by” + sticky chips ---
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const BROWSE_LABEL_H = 36;  // green chip height
+  const BROWSE_LABEL_GAP = 8; // gap below it
+  const BROWSE_TOTAL = BROWSE_LABEL_H + BROWSE_LABEL_GAP;
 
   if (initLoading) {
     return (
@@ -226,78 +334,189 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <AppHeader />
 
-      <View style={styles.browseLabelWrap}>
-        <View style={styles.browseChip}>
-          <MaterialCommunityIcons
-            name={
-              browseCategory === 'masaib'
-                ? 'book-open-variant'
-                : browseCategory === 'poet'
-                ? 'feather'
-                : 'account-music'
-            }
-            size={16}
-            color="#ffffff"
-          />
-          <Text style={styles.browseLabel}>Browse by:</Text>
-        </View>
-      </View>
-
-      <View style={styles.tabsRow}>
-        {SLIDES.map(s => {
-          const active = browseCategory === s.key;
-          return (
-            <TouchableOpacity
-              key={s.key}
-              activeOpacity={0.85}
-              onPress={() => setBrowseCategory(s.key as BrowseCategory)}
-              style={[styles.tabPill, active && styles.tabPillActive]}
-            >
-              <MaterialCommunityIcons
-                name={s.icon}
-                size={18}
-                color={active ? '#ffffff' : '#111827'}
-              />
-              <Text
-                style={[styles.tabPillText, active && styles.tabPillTextActive]}
-              >
-                {s.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      <FlatList
-        data={items}
-        keyExtractor={(it, idx) =>
-          (it.masaib ?? it.poet ?? it.reciter ?? idx).toString()
-        }
-        renderItem={renderItem}
-        contentContainerStyle={[styles.listContainer]}
-        showsVerticalScrollIndicator={false}
-        windowSize={7}
-        initialNumToRender={20}
-        maxToRenderPerBatch={20}
-        updateCellsBatchingPeriod={50}
-        removeClippedSubviews
-        ListEmptyComponent={
-          <View style={styles.emptyWrap}>
+      <View style={styles.contentWrap}>
+        {/* Animated, absolute "Browse by" that slides up and hides */}
+        <Animated.View
+          style={[
+            styles.browseLabelAbs,
+            {
+              transform: [
+                {
+                  translateY: scrollY.interpolate({
+                    inputRange: [0, BROWSE_TOTAL],
+                    outputRange: [0, -BROWSE_TOTAL],
+                    extrapolateRight: 'clamp',
+                  }),
+                },
+              ],
+              opacity: scrollY.interpolate({
+                inputRange: [0, BROWSE_TOTAL * 0.6, BROWSE_TOTAL],
+                outputRange: [1, 0.2, 0],
+                extrapolateRight: 'clamp',
+              }),
+            },
+          ]}
+        >
+          <View style={styles.browseChip}>
             <MaterialCommunityIcons
-              name="database-off"
-              size={22}
-              color="#9ca3af"
+              name={
+                browseCategory === 'masaib'
+                  ? 'book-open-variant'
+                  : browseCategory === 'poet'
+                  ? 'feather'
+                  : 'account-music'
+              }
+              size={16}
+              color="#ffffff"
             />
-            <Text style={styles.emptyText}>No results</Text>
+            <Text style={styles.browseLabel}>Browse by:</Text>
           </View>
-        }
-      />
+        </Animated.View>
+
+        <AFlatList
+          data={displayedItems}
+          keyExtractor={(it, idx) =>
+            (it.masaib ?? it.poet ?? it.reciter ?? idx).toString()
+          }
+          renderItem={renderItem}
+          contentContainerStyle={[
+            styles.listContainer,
+            { paddingTop: BROWSE_TOTAL + 8, paddingBottom: baseFabBottom + 88 },
+          ]}
+          ListHeaderComponent={
+            <View style={styles.tabsRow}>
+              {SLIDES.map(s => {
+                const active = browseCategory === s.key;
+                return (
+                  <TouchableOpacity
+                    key={s.key}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setBrowseCategory(s.key as BrowseCategory);
+                      setSearchQuery('');
+                    }}
+                    style={[styles.tabPill, active && styles.tabPillActive]}
+                  >
+                    <MaterialCommunityIcons
+                      name={s.icon}
+                      size={18}
+                      color={active ? '#ffffff' : '#111827'}
+                    />
+                    <Text
+                      style={[
+                        styles.tabPillText,
+                        active && styles.tabPillTextActive,
+                      ]}
+                    >
+                      {s.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          }
+          stickyHeaderIndices={[0]}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+          showsVerticalScrollIndicator={false}
+          windowSize={7}
+          initialNumToRender={20}
+          maxToRenderPerBatch={20}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <MaterialCommunityIcons
+                name={searchOpen && searchQuery ? 'magnify' : 'database-off'}
+                size={22}
+                color="#9ca3af"
+              />
+              <Text style={styles.emptyText}>
+                {searchOpen && searchQuery ? 'No matches' : 'No results'}
+              </Text>
+            </View>
+          }
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.select({
+            ios: 'interactive',
+            android: 'on-drag',
+            default: 'none',
+          })}
+        />
+      </View>
 
       {navigating && (
         <View style={styles.blockOverlay}>
           <Ring size={40} />
         </View>
       )}
+
+      {/* ---------- Floating Search (keyboard-aware) ---------- */}
+      <Animated.View
+        pointerEvents="box-none"
+        style={[
+          styles.fabWrap,
+          {
+            bottom: Animated.add(
+              kbAnim,
+              new Animated.Value(baseFabBottom + 20),
+            ),
+          },
+        ]}
+      >
+        <Animated.View
+          style={[
+            styles.searchBar,
+            {
+              width: barWidth,
+              borderRadius: barRadius,
+              paddingHorizontal: barPaddingH,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={searchOpen ? 'Close search' : 'Open search'}
+            onPress={() => {
+              if (searchOpen && !searchQuery) return toggleSearch(false);
+              toggleSearch();
+            }}
+            activeOpacity={0.85}
+            style={styles.searchIconBtn}
+          >
+            <Animated.View style={{ transform: [{ rotate: iconRotate }] }}>
+              <MaterialCommunityIcons
+                name={searchOpen ? 'close' : 'magnify'}
+                size={22}
+                color="#111827"
+              />
+            </Animated.View>
+          </TouchableOpacity>
+
+          {searchOpen && (
+            <TextInput
+              ref={inputRef}
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder={`Search ${
+                browseCategory === 'poet'
+                  ? 'Poets'
+                  : browseCategory === 'masaib'
+                  ? 'Masaib'
+                  : 'Reciters'
+              }…`}
+              placeholderTextColor="#9ca3af"
+              returnKeyType="search"
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+          )}
+        </Animated.View>
+      </Animated.View>
+      {/* ---------- /Floating Search ---------- */}
     </SafeAreaView>
   );
 }
@@ -306,7 +525,21 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9fafb' },
   centerFill: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: { marginTop: 14, fontSize: 16, color: '#374151' },
-  browseLabelWrap: { alignItems: 'center', marginTop: 8 },
+
+  // container for list + parallax header
+  contentWrap: { flex: 1, position: 'relative' },
+
+  // Absolute "Browse by" that slides away
+  browseLabelAbs: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingTop: 8,
+    zIndex: 10,
+  },
+
   browseChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -317,8 +550,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   browseLabel: { color: '#ffffff', fontWeight: '700' },
+
   tabsRow: {
-    marginTop: 12,
+    backgroundColor: '#f9fafb', // solid bg for sticky header
+    paddingTop: 12,
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
@@ -339,7 +574,9 @@ const styles = StyleSheet.create({
   tabPillActive: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
   tabPillText: { fontSize: 15, fontWeight: '700', color: '#111827' },
   tabPillTextActive: { color: '#ffffff' },
+
   listContainer: { paddingHorizontal: 16 },
+
   listItem: {
     backgroundColor: '#ffffff',
     flexDirection: 'row',
@@ -370,16 +607,53 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   itemCount: { fontSize: 13, color: '#6b7280' },
+
   emptyWrap: {
     paddingVertical: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyText: { marginTop: 8, color: '#9ca3af', fontSize: 14 },
+
   blockOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(249,250,251,0.65)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  /* --- Floating search --- */
+  fabWrap: {
+    position: 'absolute',
+    right: 16,
+    left: 16,
+  },
+  searchBar: {
+    position: 'absolute',
+    right: 0,
+    height: 56,
+    backgroundColor: '#ffffff',
+    borderColor: '#e5e7eb',
+    borderWidth: 1,
+    alignItems: 'center',
+    flexDirection: 'row',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  searchIconBtn: {
+    height: 56,
+    width: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    height: 56,
+    paddingHorizontal: 8,
+    fontSize: 16,
+    color: '#111827',
   },
 });

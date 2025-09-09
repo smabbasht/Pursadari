@@ -215,6 +215,54 @@ export class DatabaseService {
     return groups;
   }
 
+  // Add these two methods to your DatabaseService class:
+
+  async getMasaibByReciter(reciter: string): Promise<string[]> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const [result] = await this.db.executeSql(
+      'SELECT DISTINCT masaib FROM kalaam WHERE reciter = ? AND masaib IS NOT NULL ORDER BY masaib',
+      [reciter],
+    );
+
+    const masaibs: string[] = [];
+    for (let i = 0; i < result.rows.length; i++) {
+      masaibs.push(result.rows.item(i).masaib);
+    }
+
+    return masaibs;
+  }
+
+  async getKalaamsByReciterAndMasaib(
+    reciter: string,
+    masaib: string,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<KalaamListResponse> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const offset = (page - 1) * limit;
+
+    const [countResult] = await this.db.executeSql(
+      'SELECT COUNT(*) as total FROM kalaam WHERE reciter = ? AND masaib = ?',
+      [reciter, masaib],
+    );
+
+    const total = countResult.rows.item(0).total;
+
+    const [result] = await this.db.executeSql(
+      'SELECT * FROM kalaam WHERE reciter = ? AND masaib = ? ORDER BY title LIMIT ? OFFSET ?',
+      [reciter, masaib, limit, offset],
+    );
+
+    const kalaams: Kalaam[] = [];
+    for (let i = 0; i < result.rows.length; i++) {
+      kalaams.push(result.rows.item(i));
+    }
+
+    return { kalaams, total, page, limit };
+  }
+
   async addFavourite(kalaamId: number): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
     await this.db.executeSql(
