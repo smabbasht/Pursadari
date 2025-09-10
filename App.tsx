@@ -1,8 +1,6 @@
 /**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
+ * Bayaaz App
+ * https://github.com/smabbasht/Bayaaz
  */
 
 import React, { useEffect, useState } from 'react';
@@ -54,6 +52,7 @@ function AnimatedTabIcon({
   color: string;
   size: number;
   focused: boolean;
+  Dimensions;
 }) {
   const scale = React.useRef(new Animated.Value(1)).current;
 

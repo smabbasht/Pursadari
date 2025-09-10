@@ -13,7 +13,6 @@ import {
   Animated,
   Keyboard,
   FlatList,
-  Dimensions,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -330,7 +329,7 @@ export default function ReciterScreen() {
         style={[
           styles.floatingButton,
           {
-            bottom: 48, // constant
+            bottom: 24, // constant
             transform: [
               { translateY: kbLift }, // lift above keyboard
               {
@@ -541,7 +540,7 @@ const styles = StyleSheet.create({
   filterButton: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 32,
     backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',

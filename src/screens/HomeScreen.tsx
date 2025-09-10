@@ -40,7 +40,7 @@ const SLIDES = [
 const { width: SCREEN_W } = Dimensions.get('window');
 // Animated FlatList
 const AFlatList = Animated.createAnimatedComponent(
-  (require('react-native').FlatList as any)
+  require('react-native').FlatList as any,
 );
 
 function Ring({
@@ -314,7 +314,7 @@ export default function HomeScreen() {
 
   // --- Parallax “Browse by” + sticky chips ---
   const scrollY = useRef(new Animated.Value(0)).current;
-  const BROWSE_LABEL_H = 36;  // green chip height
+  const BROWSE_LABEL_H = 36; // green chip height
   const BROWSE_LABEL_GAP = 8; // gap below it
   const BROWSE_TOTAL = BROWSE_LABEL_H + BROWSE_LABEL_GAP;
 
@@ -418,7 +418,7 @@ export default function HomeScreen() {
           stickyHeaderIndices={[0]}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true }
+            { useNativeDriver: true },
           )}
           showsVerticalScrollIndicator={false}
           windowSize={7}
