@@ -56,7 +56,7 @@ export default function KalaamScreen() {
   const [language, setLanguage] = useState<'english' | 'urdu'>('english');
   const [isFavourite, setIsFavourite] = useState(false);
   const screenWidth = Dimensions.get('window').width;
-  const { fontScale } = useSettings();
+  const { engFont, urduFont, engFontScale, urduFontScale } = useSettings();
 
   useEffect(() => {
     load();
@@ -210,11 +210,23 @@ export default function KalaamScreen() {
             >
               <WebView
                 source={{ uri: toYouTubeEmbed(kalaam.yt_link) }}
-                allowsFullscreenVideo
-                javaScriptEnabled
-                domStorageEnabled
+                allowsFullscreenVideo={true}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+                startInLoadingState={true}
+                scalesPageToFit={true}
+                mediaPlaybackRequiresUserAction={false}
+                allowsInlineMediaPlayback={true}
                 originWhitelist={['*']}
                 style={{ backgroundColor: '#000000' }}
+                onError={(syntheticEvent) => {
+                  const { nativeEvent } = syntheticEvent;
+                  console.warn('WebView error: ', nativeEvent);
+                }}
+                onHttpError={(syntheticEvent) => {
+                  const { nativeEvent } = syntheticEvent;
+                  console.warn('WebView HTTP error: ', nativeEvent);
+                }}
               />
             </View>
           </View>
@@ -265,7 +277,11 @@ export default function KalaamScreen() {
               style={[
                 styles.lyricsText,
                 styles.centeredText,
-                { fontSize: 16 * fontScale, lineHeight: 26 * fontScale },
+                { 
+                  fontSize: 16 * engFontScale, 
+                  lineHeight: 26 * engFontScale,
+                  fontFamily: engFont === 'System' ? undefined : engFont,
+                },
               ]}
             >
               {kalaam.lyrics_eng}
@@ -276,7 +292,11 @@ export default function KalaamScreen() {
                 styles.lyricsText,
                 styles.urduText,
                 styles.centeredText,
-                { fontSize: 16 * fontScale, lineHeight: 26 * fontScale },
+                { 
+                  fontSize: 16 * urduFontScale, 
+                  lineHeight: 26 * urduFontScale,
+                  fontFamily: urduFont === 'System' ? undefined : urduFont,
+                },
               ]}
             >
               {kalaam.lyrics_urdu}
