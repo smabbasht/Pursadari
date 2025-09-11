@@ -23,8 +23,14 @@ const UR_PREVIEW = 'آؤ رو لیں شاہِ کربلا کو';
 
 // Curated safe palette + nice defaults
 const PALETTE = [
-  '#16a34a', '#0ea5e9', '#6366f1', '#db2777',
-  '#f59e0b', '#ef4444', '#10b981', '#6b7280',
+  '#16a34a',
+  '#0ea5e9',
+  '#6366f1',
+  '#db2777',
+  '#f59e0b',
+  '#ef4444',
+  '#10b981',
+  '#6b7280',
 ];
 
 const EN_FONTS = [
@@ -45,14 +51,26 @@ export default function SettingsScreen() {
   // Pull from settings if available; otherwise use local safe defaults.
   const settings = useSettings?.() ?? ({} as any);
 
-  const [theme, setTheme] = useState<'light' | 'dark'>(settings.theme ?? 'light');
-  const [accentColor, setAccentColor] = useState<string>(settings.accentColor ?? '#16a34a');
+  const [theme, setTheme] = useState<'light' | 'dark'>(
+    settings.theme ?? 'light',
+  );
+  const [accentColor, setAccentColor] = useState<string>(
+    settings.accentColor ?? '#16a34a',
+  );
 
-  const [engFont, setEngFont] = useState<string>(settings.engFont ?? EN_FONTS[0].value);
-  const [urduFont, setUrduFont] = useState<string>(settings.urduFont ?? UR_FONTS[0].value);
+  const [engFont, setEngFont] = useState<string>(
+    settings.engFont ?? EN_FONTS[0].value,
+  );
+  const [urduFont, setUrduFont] = useState<string>(
+    settings.urduFont ?? UR_FONTS[0].value,
+  );
 
-  const [engScale, setEngScale] = useState<number>(settings.engFontScale ?? 1.0);
-  const [urduScale, setUrduScale] = useState<number>(settings.urduFontScale ?? 1.2);
+  const [engScale, setEngScale] = useState<number>(
+    settings.engFontScale ?? 1.0,
+  );
+  const [urduScale, setUrduScale] = useState<number>(
+    settings.urduFontScale ?? 1.2,
+  );
 
   const isDark = theme === 'dark';
 
@@ -88,152 +106,177 @@ export default function SettingsScreen() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [hexInput, setHexInput] = useState(accentColor.replace('#', ''));
 
-  const validHex = useMemo(() => /^([0-9a-f]{6}|[0-9a-f]{3})$/i.test(hexInput), [hexInput]);
+  const validHex = useMemo(
+    () => /^([0-9a-f]{6}|[0-9a-f]{3})$/i.test(hexInput),
+    [hexInput],
+  );
 
   const onConfirmHex = () => {
     if (!validHex) return;
-    const hex = `#${hexInput.length === 3 ? hexInput.replace(/(.)/g, '$1$1') : hexInput}`.toLowerCase();
+    const hex = `#${
+      hexInput.length === 3 ? hexInput.replace(/(.)/g, '$1$1') : hexInput
+    }`.toLowerCase();
     applyAccent(hex);
     setPickerOpen(false);
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0b1220' : '#f9fafb' }]}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: isDark ? '#0b1220' : '#f9fafb' },
+      ]}
+    >
       <AppHeader />
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Appearance */}
+        <View style={[styles.section, styles.card]}>
+          <Text style={styles.sectionTitle}>Appearance</Text>
 
-      {/* Appearance */}
-      <View style={[styles.section, styles.card]}>
-        <Text style={styles.sectionTitle}>Appearance</Text>
-
-        <View style={styles.row}>
-          <Text style={styles.label}>Dark Mode</Text>
-          <Switch
-            value={isDark}
-            onValueChange={v => applyTheme(v ? 'dark' : 'light')}
-            trackColor={{ false: '#d1d5db', true: accentColor }}
-            thumbColor={isDark ? '#ffffff' : '#ffffff'}
-          />
-        </View>
-
-        <View style={styles.divider} />
-
-        <Text style={styles.label}>Accent Color</Text>
-        <View style={styles.accentRow}>
-          {PALETTE.map(c => (
-            <TouchableOpacity
-              key={c}
-              style={[
-                styles.swatch,
-                { backgroundColor: c, borderColor: c === accentColor ? '#111827' : '#e5e7eb' },
-              ]}
-              activeOpacity={0.85}
-              onPress={() => applyAccent(c)}
+          <View style={styles.row}>
+            <Text style={styles.label}>Dark Mode</Text>
+            <Switch
+              value={isDark}
+              onValueChange={v => applyTheme(v ? 'dark' : 'light')}
+              trackColor={{ false: '#d1d5db', true: accentColor }}
+              thumbColor={isDark ? '#ffffff' : '#ffffff'}
             />
-          ))}
-          <TouchableOpacity style={[styles.customBtn, { borderColor: accentColor }]} onPress={() => setPickerOpen(true)}>
-            <Text style={[styles.customBtnText, { color: '#111827' }]}>Custom</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+          </View>
 
-      {/* English Typography */}
-      <View style={[styles.section, styles.card]}>
-        <Text style={styles.sectionTitle}>English Typography</Text>
+          <View style={styles.divider} />
 
-        <Text style={styles.label}>Font</Text>
-        <View style={styles.pickerWrap}>
-          <Picker
-            selectedValue={engFont}
-            onValueChange={applyEngFont}
-            dropdownIconColor="#6b7280"
-            style={styles.picker}
-          >
-            {EN_FONTS.map(f => (
-              <Picker.Item key={f.value} label={f.label} value={f.value} />
+          <Text style={styles.label}>Accent Color</Text>
+          <View style={styles.accentRow}>
+            {PALETTE.map(c => (
+              <TouchableOpacity
+                key={c}
+                style={[
+                  styles.swatch,
+                  {
+                    backgroundColor: c,
+                    borderColor: c === accentColor ? '#111827' : '#e5e7eb',
+                  },
+                ]}
+                activeOpacity={0.85}
+                onPress={() => applyAccent(c)}
+              />
             ))}
-          </Picker>
+            <TouchableOpacity
+              style={[styles.customBtn, { borderColor: accentColor }]}
+              onPress={() => setPickerOpen(true)}
+            >
+              <Text style={[styles.customBtnText, { color: '#111827' }]}>
+                Custom
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <View style={styles.sliderRow}>
-          <Text style={styles.label}>Font Size</Text>
-          <Text style={styles.valueChip}>{engScale.toFixed(2)}x</Text>
-        </View>
-        <Slider
-          value={engScale}
-          onValueChange={applyEngScale}
-          minimumValue={0.8}
-          maximumValue={1.8}
-          step={0.02}
-          minimumTrackTintColor={accentColor}
-          maximumTrackTintColor="#e5e7eb"
-          thumbTintColor={accentColor}
-        />
+        {/* English Typography */}
+        <View style={[styles.section, styles.card]}>
+          <Text style={styles.sectionTitle}>English Typography</Text>
 
-        <View style={styles.previewCard}>
-          <Text
-            style={{
-              fontSize: 16 * engScale,
-              color: '#111827',
-              fontFamily: engFont === 'System' ? undefined : engFont,
-            }}
-          >
-            {EN_PREVIEW}
-          </Text>
-        </View>
-      </View>
+          <Text style={styles.label}>Font</Text>
+          <View style={styles.pickerWrap}>
+            <Picker
+              selectedValue={engFont}
+              onValueChange={applyEngFont}
+              dropdownIconColor="#6b7280"
+              style={styles.picker}
+            >
+              {EN_FONTS.map(f => (
+                <Picker.Item key={f.value} label={f.label} value={f.value} />
+              ))}
+            </Picker>
+          </View>
 
-      {/* Urdu Typography */}
-      <View style={[styles.section, styles.card]}>
-        <Text style={styles.sectionTitle}>Urdu Typography</Text>
+          <View style={styles.sliderRow}>
+            <Text style={styles.label}>Font Size</Text>
+            <Text style={styles.valueChip}>{engScale.toFixed(2)}x</Text>
+          </View>
+          <Slider
+            value={engScale}
+            onValueChange={applyEngScale}
+            minimumValue={0.8}
+            maximumValue={1.8}
+            step={0.02}
+            minimumTrackTintColor={accentColor}
+            maximumTrackTintColor="#e5e7eb"
+            thumbTintColor={accentColor}
+          />
 
-        <Text style={styles.label}>Font</Text>
-        <View style={styles.pickerWrap}>
-          <Picker
-            selectedValue={urduFont}
-            onValueChange={applyUrduFont}
-            dropdownIconColor="#6b7280"
-            style={styles.picker}
-          >
-            {UR_FONTS.map(f => (
-              <Picker.Item key={f.value} label={f.label} value={f.value} />
-            ))}
-          </Picker>
+          <View style={styles.previewCard}>
+            <Text
+              style={{
+                fontSize: 16 * engScale,
+                color: '#111827',
+                fontFamily: engFont === 'System' ? undefined : engFont,
+              }}
+            >
+              {EN_PREVIEW}
+            </Text>
+          </View>
         </View>
 
-        <View style={styles.sliderRow}>
-          <Text style={styles.label}>Font Size</Text>
-          <Text style={styles.valueChip}>{urduScale.toFixed(2)}x</Text>
-        </View>
-        <Slider
-          value={urduScale}
-          onValueChange={applyUrduScale}
-          minimumValue={0.9}
-          maximumValue={2.0}
-          step={0.02}
-          minimumTrackTintColor={accentColor}
-          maximumTrackTintColor="#e5e7eb"
-          thumbTintColor={accentColor}
-        />
+        {/* Urdu Typography */}
+        <View style={[styles.section, styles.card]}>
+          <Text style={styles.sectionTitle}>Urdu Typography</Text>
 
-        <View style={[styles.previewCard, { alignItems: 'flex-end' }]}>
-          <Text
-            style={{
-              fontSize: 18 * urduScale,
-              color: '#111827',
-              writingDirection: 'rtl',
-              textAlign: 'right',
-              fontFamily: urduFont === 'System' ? undefined : urduFont,
-            }}
-          >
-            {UR_PREVIEW}
-          </Text>
+          <Text style={styles.label}>Font</Text>
+          <View style={styles.pickerWrap}>
+            <Picker
+              selectedValue={urduFont}
+              onValueChange={applyUrduFont}
+              dropdownIconColor="#6b7280"
+              style={styles.picker}
+            >
+              {UR_FONTS.map(f => (
+                <Picker.Item key={f.value} label={f.label} value={f.value} />
+              ))}
+            </Picker>
+          </View>
+
+          <View style={styles.sliderRow}>
+            <Text style={styles.label}>Font Size</Text>
+            <Text style={styles.valueChip}>{urduScale.toFixed(2)}x</Text>
+          </View>
+          <Slider
+            value={urduScale}
+            onValueChange={applyUrduScale}
+            minimumValue={0.9}
+            maximumValue={2.0}
+            step={0.02}
+            minimumTrackTintColor={accentColor}
+            maximumTrackTintColor="#e5e7eb"
+            thumbTintColor={accentColor}
+          />
+
+          <View style={[styles.previewCard, { alignItems: 'flex-end' }]}>
+            <Text
+              style={{
+                fontSize: 18 * urduScale,
+                color: '#111827',
+                writingDirection: 'rtl',
+                textAlign: 'right',
+                fontFamily: urduFont === 'System' ? undefined : urduFont,
+              }}
+            >
+              {UR_PREVIEW}
+            </Text>
+          </View>
         </View>
-      </View>
       </ScrollView>
 
       {/* Accent Color Modal */}
-      <Modal visible={pickerOpen} transparent animationType="fade" onRequestClose={() => setPickerOpen(false)}>
+      <Modal
+        visible={pickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPickerOpen(false)}
+      >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Pick Accent Color</Text>
@@ -243,7 +286,10 @@ export default function SettingsScreen() {
                   key={c}
                   style={[
                     styles.swatchLarge,
-                    { backgroundColor: c, borderColor: c === accentColor ? '#111827' : '#e5e7eb' },
+                    {
+                      backgroundColor: c,
+                      borderColor: c === accentColor ? '#111827' : '#e5e7eb',
+                    },
                   ]}
                   activeOpacity={0.9}
                   onPress={() => applyAccent(c)}
@@ -265,20 +311,40 @@ export default function SettingsScreen() {
                   style={styles.hexInput}
                   maxLength={6}
                 />
-                <View style={[styles.hexPreview, { backgroundColor: validHex ? `#${hexInput}` : '#e5e7eb' }]} />
+                <View
+                  style={[
+                    styles.hexPreview,
+                    { backgroundColor: validHex ? `#${hexInput}` : '#e5e7eb' },
+                  ]}
+                />
               </View>
             </View>
 
             <View style={styles.modalBtns}>
-              <TouchableOpacity style={[styles.btn, styles.btnGhost]} onPress={() => setPickerOpen(false)}>
-                <Text style={[styles.btnText, { color: '#111827' }]}>Cancel</Text>
+              <TouchableOpacity
+                style={[styles.btn, styles.btnGhost]}
+                onPress={() => setPickerOpen(false)}
+              >
+                <Text style={[styles.btnText, { color: '#111827' }]}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.btn, { backgroundColor: validHex ? accentColor : '#e5e7eb' }]}
+                style={[
+                  styles.btn,
+                  { backgroundColor: validHex ? accentColor : '#e5e7eb' },
+                ]}
                 onPress={onConfirmHex}
                 disabled={!validHex}
               >
-                <Text style={[styles.btnText, { color: validHex ? '#fff' : '#9ca3af' }]}>Apply</Text>
+                <Text
+                  style={[
+                    styles.btnText,
+                    { color: validHex ? '#fff' : '#9ca3af' },
+                  ]}
+                >
+                  Apply
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -292,7 +358,7 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollView: { flex: 1 },
+  scrollView: { flex: 1, paddingBottom: 20 },
 
   card: {
     backgroundColor: '#ffffff',
@@ -308,9 +374,18 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   section: {},
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 12 },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+  },
 
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
 
   divider: { height: 1, backgroundColor: '#f3f4f6', marginVertical: 12 },
 
@@ -318,7 +393,9 @@ const styles = StyleSheet.create({
 
   accentRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10 },
   swatch: {
-    width: 28, height: 28, borderRadius: 14,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     borderWidth: 2,
   },
   customBtn: {
@@ -387,8 +464,12 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
 
   swatchLarge: {
-    width: 34, height: 34, borderRadius: 17,
-    borderWidth: 2, marginRight: 6, marginTop: 10,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 2,
+    marginRight: 6,
+    marginTop: 10,
   },
 
   hexRow: { marginTop: 12 },
@@ -405,7 +486,13 @@ const styles = StyleSheet.create({
   },
   hash: { color: '#6b7280', fontWeight: '700' },
   hexInput: { flex: 1, color: '#111827' },
-  hexPreview: { width: 24, height: 24, borderRadius: 6, borderWidth: 1, borderColor: '#e5e7eb' },
+  hexPreview: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
 
   modalBtns: {
     flexDirection: 'row',
@@ -417,57 +504,3 @@ const styles = StyleSheet.create({
   btnGhost: { backgroundColor: '#f3f4f6' },
   btnText: { fontWeight: '700' },
 });
-
-// import AppHeader from '../components/AppHeader';
-// import React from 'react';
-// import { View, Text, StyleSheet, Switch, TouchableOpacity } from 'react-native';
-// import { SafeAreaView } from 'react-native-safe-area-context';
-// import Slider from '@react-native-community/slider';
-// import { useSettings } from '../context/SettingsContext';
-//
-// export default function SettingsScreen() {
-//   const { theme, setTheme, fontScale, setFontScale } = useSettings();
-//   const isDark = theme === 'dark';
-//   return (
-//     <SafeAreaView style={styles.container}>
-//       <AppHeader />
-//       <View style={styles.section}>
-//         <Text style={styles.sectionTitle}>Appearance</Text>
-//         <View style={styles.row}>
-//           <Text style={styles.label}>Dark Mode</Text>
-//           <Switch value={isDark} onValueChange={(v) => setTheme(v ? 'dark' : 'light')} />
-//         </View>
-//         <View style={styles.rowColumn}>
-//           <Text style={styles.label}>Font Size</Text>
-//           <View style={styles.sizeRow}>
-//             <TouchableOpacity style={styles.sizeBtn} onPress={() => setFontScale(Math.max(0.8, +(fontScale - 0.05).toFixed(2)))}>
-//               <Text style={styles.sizeBtnText}>-</Text>
-//             </TouchableOpacity>
-//             <Text style={styles.sizeValue}>{fontScale.toFixed(2)}x</Text>
-//             <TouchableOpacity style={styles.sizeBtn} onPress={() => setFontScale(Math.min(1.6, +(fontScale + 0.05).toFixed(2)))}>
-//               <Text style={styles.sizeBtnText}>+</Text>
-//             </TouchableOpacity>
-//           </View>
-//           <Text style={styles.helper}>Affects lyrics and large text</Text>
-//         </View>
-//       </View>
-//     </SafeAreaView>
-//   );
-// }
-//
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: '#f9fafb',
-//   },
-//   section: { backgroundColor: '#ffffff', borderRadius: 12, margin: 16, padding: 16 },
-//   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 12 },
-//   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
-//   rowColumn: { paddingVertical: 8 },
-//   label: { color: '#374151', fontWeight: '600' },
-//   helper: { color: '#6b7280', marginTop: 6 },
-//   sizeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 6 },
-//   sizeBtn: { backgroundColor: '#16a34a', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
-//   sizeBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 16 },
-//   sizeValue: { minWidth: 56, textAlign: 'center', fontWeight: '700', color: '#111827' },
-// });

@@ -16,6 +16,7 @@ import {
 import { useRoute } from '@react-navigation/native';
 import { RouteProp } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import YoutubePlayer from 'react-native-youtube-iframe';
 import { WebView } from 'react-native-webview';
 import { useSettings } from '../context/SettingsContext';
 
@@ -25,23 +26,33 @@ import AppHeader from '../components/AppHeader';
 
 type KalaamRoute = RouteProp<RootStackParamList, 'Kalaam'>;
 
-function toYouTubeEmbed(url?: string): string {
-  if (!url) return 'about:blank';
+function extractYouTubeVideoId(url?: string): string | null {
+  if (!url) return null;
   try {
     const u = new URL(url);
     const host = u.hostname.replace('www.', '');
+    
     if (host === 'youtu.be') {
-      return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+      return u.pathname.slice(1);
+    } else if (host === 'youtube.com' || host === 'm.youtube.com') {
+      const videoId = u.searchParams.get('v');
+      if (videoId) return videoId;
+      
+      // Handle embed URLs
+      if (u.pathname.startsWith('/embed/')) {
+        const embedMatch = u.pathname.match(/\/embed\/([^/?]+)/);
+        return embedMatch ? embedMatch[1] : null;
+      }
     }
-    if (host === 'youtube.com' || host === 'm.youtube.com') {
-      const v = u.searchParams.get('v');
-      if (v) return `https://www.youtube.com/embed/${v}`;
-      if (u.pathname.startsWith('/embed/')) return url;
-    }
-    return url;
+    
+    return null;
   } catch {
-    return 'about:blank';
+    return null;
   }
+}
+
+function createYouTubeEmbedUrl(videoId: string): string {
+  return `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=0&controls=1&showinfo=0&fs=1&cc_load_policy=0&iv_load_policy=3&autohide=0&enablejsapi=1&origin=${encodeURIComponent('https://www.youtube.com')}`;
 }
 
 export default function KalaamScreen() {
@@ -208,26 +219,54 @@ export default function KalaamScreen() {
                 overflow: 'hidden',
               }}
             >
-              <WebView
-                source={{ uri: toYouTubeEmbed(kalaam.yt_link) }}
-                allowsFullscreenVideo={true}
-                javaScriptEnabled={true}
-                domStorageEnabled={true}
-                startInLoadingState={true}
-                scalesPageToFit={true}
-                mediaPlaybackRequiresUserAction={false}
-                allowsInlineMediaPlayback={true}
-                originWhitelist={['*']}
-                style={{ backgroundColor: '#000000' }}
-                onError={(syntheticEvent) => {
-                  const { nativeEvent } = syntheticEvent;
-                  console.warn('WebView error: ', nativeEvent);
-                }}
-                onHttpError={(syntheticEvent) => {
-                  const { nativeEvent } = syntheticEvent;
-                  console.warn('WebView HTTP error: ', nativeEvent);
-                }}
-              />
+              {(() => {
+                const videoId = extractYouTubeVideoId(kalaam.yt_link);
+                console.log('YouTube URL:', kalaam.yt_link);
+                console.log('Extracted Video ID:', videoId);
+                
+                if (!videoId) {
+                  return (
+                    <View style={{ 
+                      flex: 1, 
+                      justifyContent: 'center', 
+                      alignItems: 'center',
+                      backgroundColor: '#f0f0f0'
+                    }}>
+                      <Text style={{ color: '#666', textAlign: 'center' }}>
+                        Invalid YouTube URL
+                      </Text>
+                    </View>
+                  );
+                }
+                
+                return (
+                  <WebView
+                    source={{ uri: createYouTubeEmbedUrl(videoId) }}
+                    style={{ flex: 1, backgroundColor: '#000000' }}
+                    allowsFullscreenVideo={true}
+                    javaScriptEnabled={true}
+                    domStorageEnabled={true}
+                    mediaPlaybackRequiresUserAction={false}
+                    allowsInlineMediaPlayback={true}
+                    startInLoadingState={true}
+                    scalesPageToFit={false}
+                    mixedContentMode="compatibility"
+                    originWhitelist={['*']}
+                    onError={(syntheticEvent) => {
+                      console.warn('WebView error:', syntheticEvent.nativeEvent);
+                    }}
+                    onHttpError={(syntheticEvent) => {
+                      console.warn('WebView HTTP error:', syntheticEvent.nativeEvent);
+                    }}
+                    onLoadEnd={() => {
+                      console.log('YouTube WebView loaded successfully');
+                    }}
+                    onLoadStart={() => {
+                      console.log('Loading YouTube WebView...');
+                    }}
+                  />
+                );
+              })()}
             </View>
           </View>
         ) : null}

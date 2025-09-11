@@ -83,9 +83,9 @@ function TabNavigator() {
           backgroundColor: '#ffffff',
           borderTopWidth: 1,
           borderTopColor: '#e5e7eb',
-          paddingBottom: 5,
+          paddingBottom: 15,
           paddingTop: 5,
-          height: 60,
+          height: 70,
         },
         headerShown: false,
       }}
