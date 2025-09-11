@@ -20,6 +20,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import AppHeader from '../components/AppHeader';
+import { useThemeTokens, useSettings } from '../context/SettingsContext';
 import DatabaseService from '../database/DatabaseService';
 import {
   RootStackParamList,
@@ -126,6 +127,8 @@ function PressableCard({
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const insets = useSafeAreaInsets();
+  const t = useThemeTokens();
+  const { accentColor } = useSettings();
 
   const [browseCategory, setBrowseCategory] =
     useState<BrowseCategory>('masaib');
@@ -323,15 +326,15 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.container}>
         <AppHeader />
         <View style={styles.centerFill}>
-          <Ring size={44} />
-          <Text style={styles.loadingText}>Loading Bayaaz…</Text>
+          <Ring size={44} color={accentColor} />
+          <Text style={[styles.loadingText, { color: t.textSecondary }]}>Loading Bayaaz…</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: t.background }]} edges={['top']}>
       <AppHeader />
 
       <View style={styles.contentWrap}>
@@ -357,7 +360,7 @@ export default function HomeScreen() {
             },
           ]}
         >
-          <View style={styles.browseChip}>
+          <View style={[styles.browseChip, { backgroundColor: accentColor }]}>
             <MaterialCommunityIcons
               name={
                 browseCategory === 'masaib'
@@ -367,9 +370,9 @@ export default function HomeScreen() {
                   : 'account-music'
               }
               size={16}
-              color="#ffffff"
+              color={t.accentOnAccent}
             />
-            <Text style={styles.browseLabel}>Browse by:</Text>
+            <Text style={[styles.browseLabel, { color: t.accentOnAccent }]}>Browse by:</Text>
           </View>
         </Animated.View>
 
@@ -395,17 +398,22 @@ export default function HomeScreen() {
                       setBrowseCategory(s.key as BrowseCategory);
                       setSearchQuery('');
                     }}
-                    style={[styles.tabPill, active && styles.tabPillActive]}
+                    style={[
+                      styles.tabPill,
+                      { backgroundColor: t.surface, borderColor: t.border },
+                      active && { backgroundColor: accentColor, borderColor: accentColor },
+                    ]}
                   >
                     <MaterialCommunityIcons
                       name={s.icon}
                       size={18}
-                      color={active ? '#ffffff' : '#111827'}
+                      color={active ? t.accentOnAccent : t.textPrimary}
                     />
                     <Text
                       style={[
                         styles.tabPillText,
-                        active && styles.tabPillTextActive,
+                        { color: t.textPrimary },
+                        active && { color: t.accentOnAccent },
                       ]}
                     >
                       {s.label}
@@ -431,9 +439,9 @@ export default function HomeScreen() {
               <MaterialCommunityIcons
                 name={searchOpen && searchQuery ? 'magnify' : 'database-off'}
                 size={22}
-                color="#9ca3af"
+                color={t.textMuted}
               />
-              <Text style={styles.emptyText}>
+              <Text style={[styles.emptyText, { color: t.textMuted }]}>
                 {searchOpen && searchQuery ? 'No matches' : 'No results'}
               </Text>
             </View>
@@ -449,7 +457,7 @@ export default function HomeScreen() {
 
       {navigating && (
         <View style={styles.blockOverlay}>
-          <Ring size={40} />
+          <Ring size={40} color={accentColor} />
         </View>
       )}
 
@@ -473,6 +481,8 @@ export default function HomeScreen() {
               width: barWidth,
               borderRadius: barRadius,
               paddingHorizontal: barPaddingH,
+              backgroundColor: t.surface,
+              borderColor: t.border,
             },
           ]}
         >
@@ -490,7 +500,7 @@ export default function HomeScreen() {
               <MaterialCommunityIcons
                 name={searchOpen ? 'close' : 'magnify'}
                 size={22}
-                color="#111827"
+                color={t.textPrimary}
               />
             </Animated.View>
           </TouchableOpacity>
@@ -498,7 +508,7 @@ export default function HomeScreen() {
           {searchOpen && (
             <TextInput
               ref={inputRef}
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: t.textPrimary }]}
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder={`Search ${
@@ -508,7 +518,7 @@ export default function HomeScreen() {
                   ? 'Masaib'
                   : 'Reciters'
               }…`}
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={t.textMuted}
               returnKeyType="search"
               autoCorrect={false}
               autoCapitalize="none"
@@ -543,7 +553,6 @@ const styles = StyleSheet.create({
   browseChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#16a34a',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 24,
@@ -552,7 +561,7 @@ const styles = StyleSheet.create({
   browseLabel: { color: '#ffffff', fontWeight: '700' },
 
   tabsRow: {
-    backgroundColor: '#f9fafb', // solid bg for sticky header
+    backgroundColor: '#f9fafb',
     paddingTop: 12,
     flexDirection: 'row',
     justifyContent: 'center',
@@ -567,9 +576,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
   },
   tabPillActive: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
   tabPillText: { fontSize: 15, fontWeight: '700', color: '#111827' },
@@ -632,8 +639,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     height: 56,
-    backgroundColor: '#ffffff',
-    borderColor: '#e5e7eb',
     borderWidth: 1,
     alignItems: 'center',
     flexDirection: 'row',

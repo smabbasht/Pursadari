@@ -65,3 +65,75 @@ export function useSettings() {
 export default SettingsContext;
 
 
+// ---------- Theme tokens ----------
+export type ThemeTokens = {
+  isDark: boolean;
+  background: string;
+  surface: string;
+  card: string;
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  border: string;
+  divider: string;
+  overlay: string;
+  modalBackdrop: string;
+  accent: string;
+  accentOnAccent: string;
+  accentSubtle: string; // subtle surface tinted by accent
+  danger: string;
+};
+
+function hexToRGBA(hex: string, alpha: number) {
+  const clean = hex.replace('#', '');
+  const bigint = parseInt(clean.length === 3
+    ? clean.split('').map(c => c + c).join('')
+    : clean, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+export function useThemeTokens(): ThemeTokens {
+  const { theme, accentColor } = useSettings();
+  const isDark = theme === 'dark';
+  return useMemo(() => {
+    if (isDark) {
+      return {
+        isDark: true,
+        background: '#0b1220',
+        surface: '#0f172a',
+        card: '#0f172a',
+        textPrimary: '#e5e7eb',
+        textSecondary: '#cbd5e1',
+        textMuted: '#94a3b8',
+        border: '#1f2937',
+        divider: '#111827',
+        overlay: 'rgba(2,6,23,0.65)',
+        modalBackdrop: 'rgba(2,6,23,0.7)',
+        accent: accentColor,
+        accentOnAccent: '#ffffff',
+        accentSubtle: hexToRGBA(accentColor, 0.16),
+        danger: '#ef4444',
+      } as ThemeTokens;
+    }
+    return {
+      isDark: false,
+      background: '#f9fafb',
+      surface: '#ffffff',
+      card: '#ffffff',
+      textPrimary: '#111827',
+      textSecondary: '#374151',
+      textMuted: '#6b7280',
+      border: '#e5e7eb',
+      divider: '#f3f4f6',
+      overlay: 'rgba(249,250,251,0.65)',
+      modalBackdrop: 'rgba(17,24,39,0.5)',
+      accent: accentColor,
+      accentOnAccent: '#ffffff',
+      accentSubtle: hexToRGBA(accentColor, 0.12),
+      danger: '#dc2626',
+    } as ThemeTokens;
+  }, [isDark, accentColor]);
+}
