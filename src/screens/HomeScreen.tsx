@@ -11,6 +11,7 @@ import {
   Platform,
   Keyboard,
 } from 'react-native';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -20,6 +21,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import AppHeader from '../components/AppHeader';
+import { useThemeTokens, useSettings } from '../context/SettingsContext';
 import DatabaseService from '../database/DatabaseService';
 import {
   RootStackParamList,
@@ -126,6 +128,8 @@ function PressableCard({
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const insets = useSafeAreaInsets();
+  const t = useThemeTokens();
+  const { accentColor } = useSettings();
 
   const [browseCategory, setBrowseCategory] =
     useState<BrowseCategory>('masaib');
@@ -136,6 +140,10 @@ export default function HomeScreen() {
   );
   const [initLoading, setInitLoading] = useState(true);
   const [navigating, setNavigating] = useState(false);
+
+  // Swipe gesture state
+  const tabAnimation = useRef(new Animated.Value(0)).current;
+  const currentTabIndex = useRef(0);
 
   // --- Search UI state ---
   const [searchOpen, setSearchOpen] = useState(false);
@@ -211,6 +219,15 @@ export default function HomeScreen() {
     return reciterGroups ?? [];
   }, [browseCategory, masaibGroups, poetGroups, reciterGroups]);
 
+  // Sync current tab index with browse category
+  useEffect(() => {
+    const tabIndex = SLIDES.findIndex(slide => slide.key === browseCategory);
+    if (tabIndex !== -1) {
+      currentTabIndex.current = tabIndex;
+      tabAnimation.setValue(tabIndex);
+    }
+  }, [browseCategory]);
+
   const labelForItem = (item: MasaibGroup | PoetGroup | ReciterGroup) => {
     if (browseCategory === 'masaib') return (item as MasaibGroup).masaib;
     if (browseCategory === 'poet') return (item as PoetGroup).poet;
@@ -238,10 +255,51 @@ export default function HomeScreen() {
     }
   };
 
+  // Swipe gesture functions
+  const switchToTab = (newIndex: number) => {
+    if (newIndex < 0 || newIndex >= SLIDES.length) return;
+    
+    const newCategory = SLIDES[newIndex].key as BrowseCategory;
+    setBrowseCategory(newCategory);
+    setSearchQuery('');
+    currentTabIndex.current = newIndex;
+    
+    // Animate tab switch
+    Animated.timing(tabAnimation, {
+      toValue: newIndex,
+      duration: 300,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const onSwipeGesture = (event: any) => {
+    const { translationX, state } = event.nativeEvent;
+    
+    if (state === State.END) {
+      const threshold = 50;
+      
+      if (translationX > threshold) {
+        // Swipe right - go to previous tab
+        switchToTab(currentTabIndex.current - 1);
+      } else if (translationX < -threshold) {
+        // Swipe left - go to next tab
+        switchToTab(currentTabIndex.current + 1);
+      } else {
+        // Snap back to current position
+        Animated.timing(tabAnimation, {
+          toValue: currentTabIndex.current,
+          duration: 200,
+          useNativeDriver: false,
+        }).start();
+      }
+    }
+  };
+
   const renderItem = ({ item }: { item: any }) => (
     <PressableCard onPress={() => goToItem(item)} disabled={navigating}>
-      <View style={styles.listItem}>
-        <View style={styles.itemIconWrap}>
+      <View style={[styles.listItem, { backgroundColor: t.surface }]}>
+        <View style={[styles.itemIconWrap, { backgroundColor: t.accentSubtle }]}>
           <MaterialCommunityIcons
             name={
               browseCategory === 'masaib'
@@ -251,19 +309,19 @@ export default function HomeScreen() {
                 : 'account-music'
             }
             size={18}
-            color="#16a34a"
+            color={accentColor}
           />
         </View>
         <View style={styles.itemContent}>
-          <Text style={styles.itemName} numberOfLines={2}>
+          <Text style={[styles.itemName, { color: t.textPrimary }]} numberOfLines={2}>
             {labelForItem(item)}
           </Text>
-          <Text style={styles.itemCount}>{item.count} nohas</Text>
+          <Text style={[styles.itemCount, { color: t.textMuted }]}>{item.count} nohas</Text>
         </View>
         <MaterialCommunityIcons
           name="chevron-right"
           size={22}
-          color="#9ca3af"
+          color={t.textMuted}
         />
       </View>
     </PressableCard>
@@ -323,15 +381,15 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.container}>
         <AppHeader />
         <View style={styles.centerFill}>
-          <Ring size={44} />
-          <Text style={styles.loadingText}>Loading Bayaaz…</Text>
+          <Ring size={44} color={accentColor} />
+          <Text style={[styles.loadingText, { color: t.textSecondary }]}>Loading Bayaaz…</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: t.background }]} edges={['top']}>
       <AppHeader />
 
       <View style={styles.contentWrap}>
@@ -357,7 +415,7 @@ export default function HomeScreen() {
             },
           ]}
         >
-          <View style={styles.browseChip}>
+          <View style={[styles.browseChip, { backgroundColor: accentColor }]}>
             <MaterialCommunityIcons
               name={
                 browseCategory === 'masaib'
@@ -367,12 +425,19 @@ export default function HomeScreen() {
                   : 'account-music'
               }
               size={16}
-              color="#ffffff"
+              color={t.accentOnAccent}
             />
-            <Text style={styles.browseLabel}>Browse by:</Text>
+            <Text style={[styles.browseLabel, { color: t.accentOnAccent }]}>Browse by:</Text>
           </View>
         </Animated.View>
 
+        <PanGestureHandler
+          onHandlerStateChange={onSwipeGesture}
+          onGestureEvent={onSwipeGesture}
+          activeOffsetX={[-10, 10]}
+          failOffsetY={[-5, 5]}
+        >
+          <Animated.View style={{ flex: 1 }}>
         <AFlatList
           data={displayedItems}
           keyExtractor={(it, idx) =>
@@ -384,7 +449,7 @@ export default function HomeScreen() {
             { paddingTop: BROWSE_TOTAL + 8, paddingBottom: baseFabBottom + 88 },
           ]}
           ListHeaderComponent={
-            <View style={styles.tabsRow}>
+                <View style={[styles.tabsRow, { backgroundColor: t.background }]}>
               {SLIDES.map(s => {
                 const active = browseCategory === s.key;
                 return (
@@ -392,20 +457,25 @@ export default function HomeScreen() {
                     key={s.key}
                     activeOpacity={0.85}
                     onPress={() => {
-                      setBrowseCategory(s.key as BrowseCategory);
-                      setSearchQuery('');
-                    }}
-                    style={[styles.tabPill, active && styles.tabPillActive]}
+                          const tabIndex = SLIDES.findIndex(slide => slide.key === s.key);
+                          switchToTab(tabIndex);
+                        }}
+                        style={[
+                          styles.tabPill,
+                          { backgroundColor: t.surface, borderColor: t.border },
+                          active && { backgroundColor: accentColor, borderColor: accentColor },
+                        ]}
                   >
                     <MaterialCommunityIcons
                       name={s.icon}
                       size={18}
-                      color={active ? '#ffffff' : '#111827'}
+                          color={active ? t.accentOnAccent : t.textPrimary}
                     />
                     <Text
                       style={[
                         styles.tabPillText,
-                        active && styles.tabPillTextActive,
+                            { color: t.textPrimary },
+                            active && { color: t.accentOnAccent },
                       ]}
                     >
                       {s.label}
@@ -431,9 +501,9 @@ export default function HomeScreen() {
               <MaterialCommunityIcons
                 name={searchOpen && searchQuery ? 'magnify' : 'database-off'}
                 size={22}
-                color="#9ca3af"
+                    color={t.textMuted}
               />
-              <Text style={styles.emptyText}>
+                  <Text style={[styles.emptyText, { color: t.textMuted }]}>
                 {searchOpen && searchQuery ? 'No matches' : 'No results'}
               </Text>
             </View>
@@ -445,11 +515,13 @@ export default function HomeScreen() {
             default: 'none',
           })}
         />
+          </Animated.View>
+        </PanGestureHandler>
       </View>
 
       {navigating && (
         <View style={styles.blockOverlay}>
-          <Ring size={40} />
+          <Ring size={40} color={accentColor} />
         </View>
       )}
 
@@ -473,6 +545,8 @@ export default function HomeScreen() {
               width: barWidth,
               borderRadius: barRadius,
               paddingHorizontal: barPaddingH,
+              backgroundColor: t.surface,
+              borderColor: t.border,
             },
           ]}
         >
@@ -490,7 +564,7 @@ export default function HomeScreen() {
               <MaterialCommunityIcons
                 name={searchOpen ? 'close' : 'magnify'}
                 size={22}
-                color="#111827"
+                color={t.textPrimary}
               />
             </Animated.View>
           </TouchableOpacity>
@@ -498,7 +572,7 @@ export default function HomeScreen() {
           {searchOpen && (
             <TextInput
               ref={inputRef}
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: t.textPrimary, backgroundColor: t.surface }]}
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder={`Search ${
@@ -508,10 +582,11 @@ export default function HomeScreen() {
                   ? 'Masaib'
                   : 'Reciters'
               }…`}
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={t.textMuted}
               returnKeyType="search"
               autoCorrect={false}
               autoCapitalize="none"
+              selectionColor={accentColor}
             />
           )}
         </Animated.View>
@@ -543,7 +618,6 @@ const styles = StyleSheet.create({
   browseChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#16a34a',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 24,
@@ -552,7 +626,6 @@ const styles = StyleSheet.create({
   browseLabel: { color: '#ffffff', fontWeight: '700' },
 
   tabsRow: {
-    backgroundColor: '#f9fafb', // solid bg for sticky header
     paddingTop: 12,
     flexDirection: 'row',
     justifyContent: 'center',
@@ -567,9 +640,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
   },
   tabPillActive: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
   tabPillText: { fontSize: 15, fontWeight: '700', color: '#111827' },
@@ -578,7 +649,6 @@ const styles = StyleSheet.create({
   listContainer: { paddingHorizontal: 16 },
 
   listItem: {
-    backgroundColor: '#ffffff',
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
@@ -594,7 +664,6 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 8,
-    backgroundColor: '#ecfdf5',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -632,8 +701,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     height: 56,
-    backgroundColor: '#ffffff',
-    borderColor: '#e5e7eb',
     borderWidth: 1,
     alignItems: 'center',
     flexDirection: 'row',

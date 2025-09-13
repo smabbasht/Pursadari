@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
+import { useThemeTokens } from '../context/SettingsContext';
 
 export default function AppHeader() {
+  const t = useThemeTokens();
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { backgroundColor: t.surface, borderBottomColor: t.border }] }>
       <View style={styles.innerRow}>
         <View style={styles.logoWrap}>
           <Image
@@ -11,7 +13,7 @@ export default function AppHeader() {
             style={styles.logo}
           />
         </View>
-        <Text style={styles.title}>Bayaaz</Text>
+        <Text style={[styles.title, { color: t.textPrimary }]}>Bayaaz</Text>
       </View>
     </View>
   );
@@ -19,9 +21,7 @@ export default function AppHeader() {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
   },
   innerRow: {
     flexDirection: 'row',
@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 19,
     overflow: 'hidden',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -46,7 +46,6 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   title: {
-    color: '#111827',
     fontSize: 20,
     fontWeight: '700',
   },

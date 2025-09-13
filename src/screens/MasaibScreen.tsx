@@ -24,6 +24,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import DatabaseService from '../database/DatabaseService';
 import { RootStackParamList, KalaamListResponse, Kalaam } from '../types';
 import AppHeader from '../components/AppHeader';
+import { useThemeTokens, useSettings } from '../context/SettingsContext';
 
 type MasaibRoute = RouteProp<RootStackParamList, 'Masaib'>;
 type Nav = StackNavigationProp<RootStackParamList, 'Masaib'>;
@@ -32,6 +33,8 @@ type Nav = StackNavigationProp<RootStackParamList, 'Masaib'>;
 const globalFilters = new Map<string, string>();
 
 export default function MasaibScreen() {
+  const t = useThemeTokens();
+  const { accentColor } = useSettings();
   const route = useRoute<MasaibRoute>();
   const navigation = useNavigation<Nav>();
   const { masaib } = route.params;
@@ -189,11 +192,11 @@ export default function MasaibScreen() {
 
   if (isLoading && !data) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
         <AppHeader />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#16a34a" />
-          <Text style={styles.loadingText}>Loading nohas...</Text>
+          <ActivityIndicator size="large" color={accentColor} />
+          <Text style={[styles.loadingText, { color: t.textMuted }]}>Loading nohas...</Text>
         </View>
       </SafeAreaView>
     );
@@ -201,11 +204,11 @@ export default function MasaibScreen() {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={load}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+          <Text style={[styles.errorText, { color: t.danger }]}>{error}</Text>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: accentColor }]} onPress={load}>
+            <Text style={[styles.retryButtonText, { color: t.accentOnAccent }]}>Retry</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -223,16 +226,15 @@ export default function MasaibScreen() {
   const topResults = filteredReciters.slice(0, 3);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: t.background }]} edges={['top']}>
       <AppHeader />
       <ScrollView style={styles.scrollView}>
-        <View style={styles.headerCard}>
-          <View style={styles.headerBanner}>
-            <Text style={styles.headerTitle}>
-              <MaterialCommunityIcons name="book-open-variant" size={18} />{' '}
-              {masaib}
+        <View style={[styles.headerCard, { backgroundColor: t.surface }]}>
+          <View style={[styles.headerBanner, { backgroundColor: accentColor }]}>
+            <Text style={[styles.headerTitle, { color: t.accentOnAccent }]}>
+              <MaterialCommunityIcons name="book-open-variant" size={18} color={t.accentOnAccent} /> {masaib}
             </Text>
-            <Text style={styles.headerSubtitle}>
+            <Text style={[styles.headerSubtitle, { color: t.accentOnAccent }]}>
               {data?.total || 0} nohas in this category
             </Text>
           </View>
@@ -241,25 +243,25 @@ export default function MasaibScreen() {
         {/* Active Filter Chip (reciter) */}
         {selectedReciter && (
           <View style={styles.filterChipContainer}>
-            <View style={styles.filterChip}>
-              <MaterialCommunityIcons name="filter" size={14} color="#16a34a" />
-              <Text style={styles.filterChipText}>{selectedReciter}</Text>
+            <View style={[styles.filterChip, { backgroundColor: t.accentSubtle }] }>
+              <MaterialCommunityIcons name="filter" size={14} color={accentColor} />
+              <Text style={[styles.filterChipText, { color: accentColor }]}>{selectedReciter}</Text>
               <TouchableOpacity onPress={clearFilter}>
                 <MaterialCommunityIcons
                   name="close"
                   size={16}
-                  color="#16a34a"
+                  color={accentColor}
                 />
               </TouchableOpacity>
             </View>
           </View>
         )}
 
-        <View style={styles.listCard}>
+        <View style={[styles.listCard, { backgroundColor: t.surface }]}>
           {!data || isLoading ? (
             <View style={styles.loadingInline}>
-              <ActivityIndicator size="small" color="#16a34a" />
-              <Text style={styles.loadingText}>Loading nohas...</Text>
+              <ActivityIndicator size="small" color={accentColor} />
+              <Text style={[styles.loadingText, { color: t.textMuted }]}>Loading nohas...</Text>
             </View>
           ) : data.kalaams.length > 0 ? (
             <View className="listDivider" style={styles.listDivider}>
@@ -270,16 +272,16 @@ export default function MasaibScreen() {
                   onPress={() => navigation.navigate('Kalaam', { id: k.id })}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.itemTitle}>{k.title}</Text>
+                    <Text style={[styles.itemTitle, { color: t.textPrimary }]}>{k.title}</Text>
                     <View style={styles.metaRow}>
                       {k.reciter ? (
                         <View style={styles.metaChip}>
                           <MaterialCommunityIcons
                             name="account-music"
                             size={14}
-                            color="#6b7280"
+                            color={t.textMuted}
                           />
-                          <Text style={styles.metaText}>{k.reciter}</Text>
+                          <Text style={[styles.metaText, { color: t.textMuted }]}>{k.reciter}</Text>
                         </View>
                       ) : null}
                       {k.poet ? (
@@ -287,9 +289,9 @@ export default function MasaibScreen() {
                           <MaterialCommunityIcons
                             name="feather"
                             size={14}
-                            color="#6b7280"
+                            color={t.textMuted}
                           />
-                          <Text style={styles.metaText}>{k.poet}</Text>
+                          <Text style={[styles.metaText, { color: t.textMuted }]}>{k.poet}</Text>
                         </View>
                       ) : null}
                     </View>
@@ -297,14 +299,14 @@ export default function MasaibScreen() {
                   <MaterialCommunityIcons
                     name="chevron-right"
                     size={22}
-                    color="#9ca3af"
+                    color={t.textMuted}
                   />
                 </TouchableOpacity>
               ))}
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>
+              <Text style={[styles.emptyText, { color: t.textMuted }] }>
                 No nohas found for this category.
               </Text>
             </View>
@@ -318,12 +320,13 @@ export default function MasaibScreen() {
               disabled={page === 1}
               style={[
                 styles.pageButton,
+                { backgroundColor: accentColor },
                 page === 1 && styles.pageButtonDisabled,
               ]}
             >
-              <Text style={styles.pageButtonText}>Prev</Text>
+              <Text style={[styles.pageButtonText, { color: t.accentOnAccent }]}>Prev</Text>
             </TouchableOpacity>
-            <Text style={styles.pageIndicator}>
+            <Text style={[styles.pageIndicator, { color: t.textMuted }]}>
               {page} / {totalPages}
             </Text>
             <TouchableOpacity
@@ -331,10 +334,11 @@ export default function MasaibScreen() {
               disabled={!data || page >= totalPages}
               style={[
                 styles.pageButton,
+                { backgroundColor: accentColor },
                 (!data || page >= totalPages) && styles.pageButtonDisabled,
               ]}
             >
-              <Text style={styles.pageButtonText}>Next</Text>
+              <Text style={[styles.pageButtonText, { color: t.accentOnAccent }]}>Next</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -366,11 +370,11 @@ export default function MasaibScreen() {
         pointerEvents="box-none"
       >
         <TouchableOpacity
-          style={styles.filterButton}
+          style={[styles.filterButton, { backgroundColor: t.surface, borderColor: t.border }]}
           onPress={toggleFilter}
           activeOpacity={0.85}
         >
-          <Feather name="filter" size={22} color="#111827" />
+          <Feather name="filter" size={22} color={t.textPrimary} />
         </TouchableOpacity>
       </Animated.View>
 
@@ -386,7 +390,7 @@ export default function MasaibScreen() {
         ]}
         pointerEvents={isFilterOpen ? 'auto' : 'none'}
       >
-        <View style={styles.overlayInner}>
+        <View style={[styles.overlayInner, { backgroundColor: t.surface }] }>
           <FlatList
             data={topResults}
             keyExtractor={(item, index) => `${item}-${index}`}
@@ -404,17 +408,17 @@ export default function MasaibScreen() {
                   <MaterialCommunityIcons
                     name="account-music"
                     size={16}
-                    color="#16a34a"
+                    color={accentColor}
                   />
                 </View>
-                <Text style={styles.resultTitle} numberOfLines={1}>
+                <Text style={[styles.resultTitle, { color: t.textPrimary }]} numberOfLines={1}>
                   {item}
                 </Text>
                 {selectedReciter === item && (
                   <MaterialCommunityIcons
                     name="check"
                     size={18}
-                    color="#16a34a"
+                    color={accentColor}
                   />
                 )}
               </TouchableOpacity>
@@ -424,26 +428,26 @@ export default function MasaibScreen() {
                 <MaterialCommunityIcons
                   name="magnify"
                   size={24}
-                  color="#9ca3af"
+                  color={t.textMuted}
                 />
-                <Text style={styles.emptyText}>No reciters found</Text>
+                <Text style={[styles.emptyText, { color: t.textMuted }]}>No reciters found</Text>
               </View>
             }
           />
 
           {/* Search bar pinned at bottom */}
-          <View style={styles.searchFooter}>
-            <View style={styles.searchInputContainer}>
+          <View style={[styles.searchFooter, { backgroundColor: t.surface, borderTopColor: t.divider }]}>
+            <View style={[styles.searchInputContainer, { backgroundColor: t.surface, borderColor: t.border }] }>
               <MaterialCommunityIcons
                 name="magnify"
                 size={20}
-                color="#6b7280"
+                color={t.textMuted}
                 style={styles.searchIcon}
               />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: t.textPrimary }]} 
                 placeholder="Search reciters…"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={t.textMuted}
                 value={searchText}
                 onChangeText={setSearchText}
                 autoCapitalize="none"
@@ -456,7 +460,7 @@ export default function MasaibScreen() {
               onPress={toggleFilter}
               hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
             >
-              <MaterialCommunityIcons name="close" size={22} color="#6b7280" />
+              <MaterialCommunityIcons name="close" size={22} color={t.textMuted} />
             </TouchableOpacity>
           </View>
         </View>
@@ -539,7 +543,6 @@ const styles = StyleSheet.create({
     marginBottom: 80,
   },
   pageButton: {
-    backgroundColor: '#16a34a',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -649,7 +652,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   retryButton: {
-    backgroundColor: '#16a34a',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,

@@ -1,4 +1,5 @@
 import AppHeader from '../components/AppHeader';
+import { useThemeTokens, useSettings } from '../context/SettingsContext';
 import React, { useState } from 'react';
 import {
   View,
@@ -43,6 +44,8 @@ async function submitToGoogleForm(payload: Record<string, string>) {
 }
 
 export default function AddLyricsScreen() {
+  const t = useThemeTokens();
+  const { accentColor } = useSettings();
   const [title, setTitle] = useState('');
   const [reciter, setReciter] = useState('');
   const [poet, setPoet] = useState('');
@@ -103,56 +106,56 @@ export default function AddLyricsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
       <AppHeader />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: t.surface }]}>
           <View style={styles.sectionHeader}>
             <MaterialCommunityIcons
               name="file-document-edit"
               size={18}
-              color="#10b981"
+              color={accentColor}
             />
-            <Text style={styles.sectionTitle}>Basic Information</Text>
+            <Text style={[styles.sectionTitle, { color: t.textPrimary }]}>Basic Information</Text>
           </View>
-          <Text style={styles.label}>Title *</Text>
+          <Text style={[styles.label, { color: t.textSecondary }]}>Title *</Text>
           <TextInput
             value={title}
             onChangeText={setTitle}
             placeholder="Enter the title of the Kalaam"
-            placeholderTextColor="#9ca3af"
-            style={styles.input}
+            placeholderTextColor={t.textMuted}
+            style={[styles.input, { backgroundColor: t.background, borderColor: t.border, color: t.textPrimary }]}
           />
 
           <View style={styles.row2}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>
+              <Text style={[styles.label, { color: t.textSecondary }]}>
                 <MaterialCommunityIcons name="account-music" /> Reciter *
               </Text>
               <TextInput
                 value={reciter}
                 onChangeText={setReciter}
                 placeholder="Name of the reciter"
-                placeholderTextColor="#9ca3af"
-                style={styles.input}
+                placeholderTextColor={t.textMuted}
+                style={[styles.input, { backgroundColor: t.background, borderColor: t.border, color: t.textPrimary }]}
               />
             </View>
             <View style={{ width: 12 }} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>
+              <Text style={[styles.label, { color: t.textSecondary }]}>
                 <MaterialCommunityIcons name="feather" /> Poet *
               </Text>
               <TextInput
                 value={poet}
                 onChangeText={setPoet}
                 placeholder="Name of the poet"
-                placeholderTextColor="#9ca3af"
-                style={styles.input}
+                placeholderTextColor={t.textMuted}
+                style={[styles.input, { backgroundColor: t.background, borderColor: t.border, color: t.textPrimary }]}
               />
             </View>
           </View>
 
-          <Text style={styles.label}>
+          <Text style={[styles.label, { color: t.textSecondary }]}>
             <MaterialCommunityIcons name="book-open-variant" /> Category
             (Masaib) *
           </Text>
@@ -160,55 +163,55 @@ export default function AddLyricsScreen() {
             value={masaib}
             onChangeText={setMasaib}
             placeholder="e.g., Karbala, Ashura, Ahlul Bayt"
-            placeholderTextColor="#9ca3af"
-            style={styles.input}
+            placeholderTextColor={t.textMuted}
+            style={[styles.input, { backgroundColor: t.background, borderColor: t.border, color: t.textPrimary }]}
           />
         </View>
 
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: t.surface }]}>
           <View style={styles.sectionHeader}>
             <MaterialCommunityIcons
               name="file-document"
               size={18}
-              color="#10b981"
+              color={accentColor}
             />
-            <Text style={styles.sectionTitle}>Lyrics</Text>
+            <Text style={[styles.sectionTitle, { color: t.textPrimary }]}>Lyrics</Text>
           </View>
-          <Text style={styles.label}>English Lyrics *</Text>
+          <Text style={[styles.label, { color: t.textSecondary }]}>English Lyrics *</Text>
           <TextInput
             value={lyricsEng}
             onChangeText={setLyricsEng}
             placeholder="Enter the lyrics in English..."
-            placeholderTextColor="#9ca3af"
-            style={[styles.input, styles.textarea]}
+            placeholderTextColor={t.textMuted}
+            style={[styles.input, styles.textarea, { backgroundColor: t.background, borderColor: t.border, color: t.textPrimary }]}
             multiline
           />
-          <Text style={styles.label}>Urdu Lyrics</Text>
+          <Text style={[styles.label, { color: t.textSecondary }]}>Urdu Lyrics</Text>
           <TextInput
             value={lyricsUrdu}
             onChangeText={setLyricsUrdu}
             placeholder="اردو میں نوحہ لکھیے ...."
-            placeholderTextColor="#9ca3af"
-            style={[styles.input, styles.textarea]}
+            placeholderTextColor={t.textMuted}
+            style={[styles.input, styles.textarea, { backgroundColor: t.background, borderColor: t.border, color: t.textPrimary }]}
             multiline
           />
         </View>
 
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: t.surface }]}>
           <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="link" size={18} color="#10b981" />
-            <Text style={styles.sectionTitle}>Links & Contact</Text>
+            <MaterialCommunityIcons name="link" size={18} color={accentColor} />
+            <Text style={[styles.sectionTitle, { color: t.textPrimary }]}>Links & Contact</Text>
           </View>
           <Text style={styles.label}>
-            <MaterialCommunityIcons name="youtube" color="#ef4444" /> YouTube
+            <MaterialCommunityIcons name="youtube" color={t.danger} /> YouTube
             Link *
           </Text>
           <TextInput
             value={yt}
             onChangeText={setYt}
             placeholder="https://www.youtube.com/watch?v=..."
-            placeholderTextColor="#9ca3af"
-            style={styles.input}
+            placeholderTextColor={t.textMuted}
+            style={[styles.input, { backgroundColor: t.background, borderColor: t.border, color: t.textPrimary }]}
             autoCapitalize="none"
           />
           <Text style={styles.label}>
@@ -220,31 +223,31 @@ export default function AddLyricsScreen() {
             placeholder="your.email@example.com"
             keyboardType="email-address"
             autoCapitalize="none"
-            placeholderTextColor="#9ca3af"
-            style={styles.input}
+            placeholderTextColor={t.textMuted}
+            style={[styles.input, { backgroundColor: t.background, borderColor: t.border, color: t.textPrimary }]}
           />
           <View style={{ height: 12 }} />
 
           <View style={styles.row2}>
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: '#9ca3af' }]}
+              style={[styles.button, { backgroundColor: t.textMuted }]}
               onPress={resetForm}
               disabled={submitting}
             >
-              <Text style={styles.buttonText}>Reset Form</Text>
+              <Text style={[styles.buttonText, { color: t.accentOnAccent }]}>Reset Form</Text>
             </TouchableOpacity>
             <View style={{ width: 12 }} />
             <TouchableOpacity
-              style={[styles.button, submitting && { opacity: 0.6 }]}
+              style={[styles.button, { backgroundColor: accentColor }, submitting && { opacity: 0.6 }]}
               onPress={onSubmit}
               disabled={submitting}
             >
               {submitting ? (
-                <ActivityIndicator color="#ffffff" />
+                <ActivityIndicator color={t.accentOnAccent} />
               ) : (
                 <>
-                  <MaterialCommunityIcons name="send" color="#ffffff" />
-                  <Text style={[styles.buttonText, { marginLeft: 6 }]}>
+                  <MaterialCommunityIcons name="send" color={t.accentOnAccent} />
+                  <Text style={[styles.buttonText, { marginLeft: 6, color: t.accentOnAccent }]}>
                     Submit Lyrics
                   </Text>
                 </>

@@ -20,6 +20,7 @@ android {
     versionCode 3
     versionName "0.1.0"
     buildConfigField "boolean", "IS_HERMES_ENABLED", "true"
+    applicationIdSuffix ".debug"
   }
 
   signingConfigs {

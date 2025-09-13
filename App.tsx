@@ -24,6 +24,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { SettingsProvider, useSettings } from './src/context/SettingsContext';
+import { useThemeTokens } from './src/context/SettingsContext';
 import DatabaseService from './src/database/DatabaseService';
 import { RootStackParamList, TabParamList } from './src/types';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -83,7 +84,7 @@ function TabNavigator() {
           backgroundColor: '#ffffff',
           borderTopWidth: 1,
           borderTopColor: '#e5e7eb',
-          paddingBottom: 15,
+          paddingBottom: 5,
           paddingTop: 5,
           height: 70,
         },
@@ -246,18 +247,20 @@ function App() {
 
   const ThemedNav = () => {
     const { theme } = useSettings();
+    const t = useThemeTokens();
     const insets = useSafeAreaInsets();
     return (
       <NavigationContainer theme={theme === 'dark' ? DarkTheme : DefaultTheme}>
+        <StatusBar barStyle={t.isDark ? 'light-content' : 'dark-content'} />
         <Tab.Navigator
           initialRouteName="Home"
           screenOptions={{
-            tabBarActiveTintColor: '#16a34a',
-            tabBarInactiveTintColor: '#6b7280',
+            tabBarActiveTintColor: t.accent,
+            tabBarInactiveTintColor: t.textMuted,
             tabBarStyle: {
-              backgroundColor: '#ffffff',
+              backgroundColor: t.surface,
               borderTopWidth: 1,
-              borderTopColor: '#e5e7eb',
+              borderTopColor: t.border,
               paddingBottom: Math.max(insets.bottom, 6),
               paddingTop: 6,
               height: 56 + insets.bottom,

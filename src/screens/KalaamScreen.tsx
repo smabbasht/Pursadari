@@ -18,7 +18,7 @@ import { RouteProp } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { WebView } from 'react-native-webview';
-import { useSettings } from '../context/SettingsContext';
+import { useSettings, useThemeTokens } from '../context/SettingsContext';
 
 import DatabaseService from '../database/DatabaseService';
 import { RootStackParamList, Kalaam } from '../types';
@@ -30,17 +30,17 @@ function extractYouTubeVideoId(url?: string): string | null {
   if (!url) return null;
   try {
     const u = new URL(url);
-    const host = u.hostname.replace('www.', '');
+    const host = (u as any).hostname.replace('www.', '');
     
     if (host === 'youtu.be') {
-      return u.pathname.slice(1);
+      return (u as any).pathname.slice(1);
     } else if (host === 'youtube.com' || host === 'm.youtube.com') {
-      const videoId = u.searchParams.get('v');
+      const videoId = (u as any).searchParams.get('v');
       if (videoId) return videoId;
       
       // Handle embed URLs
-      if (u.pathname.startsWith('/embed/')) {
-        const embedMatch = u.pathname.match(/\/embed\/([^/?]+)/);
+      if ((u as any).pathname.startsWith('/embed/')) {
+        const embedMatch = (u as any).pathname.match(/\/embed\/([^/?]+)/);
         return embedMatch ? embedMatch[1] : null;
       }
     }
@@ -57,6 +57,8 @@ function createYouTubeEmbedUrl(videoId: string): string {
 
 export default function KalaamScreen() {
   const insets = useSafeAreaInsets();
+  const t = useThemeTokens();
+  const { accentColor } = useSettings();
 
   const route = useRoute<KalaamRoute>();
   const { id } = route.params;
@@ -124,11 +126,11 @@ export default function KalaamScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
         <AppHeader />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#16a34a" />
-          <Text style={styles.loadingText}>Loading kalaam...</Text>
+          <ActivityIndicator size="large" color={accentColor} />
+          <Text style={[styles.loadingText, { color: t.textMuted }]}>Loading kalaam...</Text>
         </View>
       </SafeAreaView>
     );
@@ -136,11 +138,11 @@ export default function KalaamScreen() {
 
   if (error || !kalaam) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error || 'Kalaam not found'}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={load}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+          <Text style={[styles.errorText, { color: t.danger }]}>{error || 'Kalaam not found'}</Text>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: accentColor }]} onPress={load}>
+            <Text style={[styles.retryButtonText, { color: t.accentOnAccent }]}>Retry</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -148,7 +150,7 @@ export default function KalaamScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: t.background }]} edges={['top']}>
       <AppHeader />
       <ScrollView
         style={styles.scrollView}
@@ -157,60 +159,60 @@ export default function KalaamScreen() {
           paddingBottom: (insets.bottom || 8) + 16,
         }}
       >
-        <View style={[styles.card, styles.maxWidth]}>
-          <Text style={styles.title}>{kalaam.title}</Text>
-          <TouchableOpacity style={styles.favButton} onPress={toggleFavourite}>
+        <View style={[styles.card, styles.maxWidth, { backgroundColor: t.surface }]}>
+          <Text style={[styles.title, { color: t.textPrimary }]}>{kalaam.title}</Text>
+          <TouchableOpacity style={[styles.favButton, { backgroundColor: t.divider }]} onPress={toggleFavourite}>
             <MaterialCommunityIcons
               name={isFavourite ? 'heart' : 'heart-outline'}
               size={20}
-              color={isFavourite ? '#dc2626' : '#6b7280'}
+              color={isFavourite ? t.danger : t.textMuted}
             />
-            <Text style={styles.favButtonText}>
+            <Text style={[styles.favButtonText, { color: t.textSecondary }]}>
               {isFavourite ? 'Remove from Favourites' : 'Add to Favourites'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.card, styles.maxWidth]}>
+        <View style={[styles.card, styles.maxWidth, { backgroundColor: t.surface }]}>
           <View style={styles.metaColumn}>
             <View style={styles.metaRowLine}>
-              <Text style={styles.metaLabel}>Reciter:</Text>
-              <View style={styles.metaChipFull}>
+              <Text style={[styles.metaLabel, { color: t.textSecondary }]}>Reciter:</Text>
+              <View style={[styles.metaChipFull, { backgroundColor: t.divider }]}>
                 <MaterialCommunityIcons
                   name="account-music"
                   size={16}
-                  color="#6b7280"
+                  color={t.textMuted}
                 />
-                <Text style={styles.metaText}>{kalaam.reciter || 'N/A'}</Text>
+                <Text style={[styles.metaText, { color: t.textSecondary }]}>{kalaam.reciter || 'N/A'}</Text>
               </View>
             </View>
             <View style={styles.metaRowLine}>
-              <Text style={styles.metaLabel}>Poet:</Text>
-              <View style={styles.metaChipFull}>
+              <Text style={[styles.metaLabel, { color: t.textSecondary }]}>Poet:</Text>
+              <View style={[styles.metaChipFull, { backgroundColor: t.divider }]}>
                 <MaterialCommunityIcons
                   name="feather"
                   size={16}
-                  color="#6b7280"
+                  color={t.textMuted}
                 />
-                <Text style={styles.metaText}>{kalaam.poet || 'N/A'}</Text>
+                <Text style={[styles.metaText, { color: t.textSecondary }]}>{kalaam.poet || 'N/A'}</Text>
               </View>
             </View>
             <View style={styles.metaRowLine}>
-              <Text style={styles.metaLabel}>Masaib:</Text>
-              <View style={styles.metaChipFull}>
+              <Text style={[styles.metaLabel, { color: t.textSecondary }]}>Masaib:</Text>
+              <View style={[styles.metaChipFull, { backgroundColor: t.divider }]}>
                 <MaterialCommunityIcons
                   name="book-open-variant"
                   size={16}
-                  color="#6b7280"
+                  color={t.textMuted}
                 />
-                <Text style={styles.metaText}>{kalaam.masaib || 'N/A'}</Text>
+                <Text style={[styles.metaText, { color: t.textSecondary }]}>{kalaam.masaib || 'N/A'}</Text>
               </View>
             </View>
           </View>
         </View>
 
         {kalaam.yt_link ? (
-          <View style={[styles.card, styles.maxWidth, { overflow: 'hidden' }]}>
+          <View style={[styles.card, styles.maxWidth, { overflow: 'hidden', backgroundColor: t.surface }]}>
             <View
               style={{
                 width: '100%',
@@ -230,9 +232,9 @@ export default function KalaamScreen() {
                       flex: 1, 
                       justifyContent: 'center', 
                       alignItems: 'center',
-                      backgroundColor: '#f0f0f0'
+                      backgroundColor: t.divider
                     }}>
-                      <Text style={{ color: '#666', textAlign: 'center' }}>
+                      <Text style={{ color: t.textMuted, textAlign: 'center' }}>
                         Invalid YouTube URL
                       </Text>
                     </View>
@@ -273,18 +275,19 @@ export default function KalaamScreen() {
 
         {kalaam.lyrics_urdu || kalaam.lyrics_eng ? (
           <View style={[styles.maxWidth, styles.flatSection]}>
-            <View style={styles.languageToggle}>
+            <View style={[styles.languageToggle, { backgroundColor: t.divider }]}>
               <TouchableOpacity
                 style={[
                   styles.languageButton,
-                  language === 'english' && styles.languageButtonActive,
+                  language === 'english' && { backgroundColor: accentColor },
                 ]}
                 onPress={() => setLanguage('english')}
               >
                 <Text
                   style={[
                     styles.languageButtonText,
-                    language === 'english' && styles.languageButtonTextActive,
+                    { color: t.textMuted },
+                    language === 'english' && { color: t.accentOnAccent },
                   ]}
                 >
                   English
@@ -293,14 +296,15 @@ export default function KalaamScreen() {
               <TouchableOpacity
                 style={[
                   styles.languageButton,
-                  language === 'urdu' && styles.languageButtonActive,
+                  language === 'urdu' && { backgroundColor: accentColor },
                 ]}
                 onPress={() => setLanguage('urdu')}
               >
                 <Text
                   style={[
                     styles.languageButtonText,
-                    language === 'urdu' && styles.languageButtonTextActive,
+                    { color: t.textMuted },
+                    language === 'urdu' && { color: t.accentOnAccent },
                   ]}
                 >
                   اردو
@@ -310,7 +314,7 @@ export default function KalaamScreen() {
           </View>
         ) : null}
 
-        <View style={[styles.card, styles.maxWidth]}>
+        <View style={[styles.card, styles.maxWidth, { backgroundColor: t.surface }]}>
           {language === 'english' && kalaam.lyrics_eng ? (
             <Text
               style={[
@@ -320,6 +324,7 @@ export default function KalaamScreen() {
                   fontSize: 16 * engFontScale, 
                   lineHeight: 26 * engFontScale,
                   fontFamily: engFont === 'System' ? undefined : engFont,
+                  color: t.textPrimary,
                 },
               ]}
             >
@@ -335,13 +340,14 @@ export default function KalaamScreen() {
                   fontSize: 16 * urduFontScale, 
                   lineHeight: 26 * urduFontScale,
                   fontFamily: urduFont === 'System' ? undefined : urduFont,
+                  color: t.textPrimary,
                 },
               ]}
             >
               {kalaam.lyrics_urdu}
             </Text>
           ) : (
-            <Text style={styles.noLyricsText}>
+            <Text style={[styles.noLyricsText, { color: t.textMuted }]}>
               {language === 'english'
                 ? 'English lyrics not available.'
                 : 'اردو کے بول دستیاب نہیں ہیں۔'}
@@ -359,9 +365,9 @@ export default function KalaamScreen() {
             <MaterialCommunityIcons
               name="share-variant"
               size={18}
-              color="#16a34a"
+              color={accentColor}
             />
-            <Text style={styles.shareBtnText}>Share Lyrics</Text>
+            <Text style={[styles.shareBtnText, { color: accentColor }]}>Share Lyrics</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
