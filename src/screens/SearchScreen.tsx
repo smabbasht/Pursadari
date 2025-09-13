@@ -141,11 +141,11 @@ export default function SearchScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
       <AppHeader />
       <View style={{ padding: 16 }}>
-        <View style={styles.searchRow}>
+        <View style={[styles.searchRow, { backgroundColor: t.surface, borderColor: t.border }]}>
           <MaterialCommunityIcons name="magnify" size={22} color={t.textMuted} />
           <TextInput
             placeholder="Search title..."
-            style={[styles.input, { color: t.textPrimary } ]}
+            style={[styles.input, { color: t.textPrimary, backgroundColor: t.surface }]}
             value={query}
             onChangeText={onChange}
             onSubmitEditing={onSearchPress}
@@ -199,10 +199,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#ffffff',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    borderWidth: 1,
   },
   input: { flex: 1, fontSize: 15, color: '#111827' },
   searchBtn: {

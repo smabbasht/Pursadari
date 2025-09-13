@@ -370,7 +370,7 @@ export default function MasaibScreen() {
         pointerEvents="box-none"
       >
         <TouchableOpacity
-          style={styles.filterButton}
+          style={[styles.filterButton, { backgroundColor: t.surface, borderColor: t.border }]}
           onPress={toggleFilter}
           activeOpacity={0.85}
         >

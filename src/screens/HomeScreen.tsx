@@ -11,6 +11,7 @@ import {
   Platform,
   Keyboard,
 } from 'react-native';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -140,6 +141,10 @@ export default function HomeScreen() {
   const [initLoading, setInitLoading] = useState(true);
   const [navigating, setNavigating] = useState(false);
 
+  // Swipe gesture state
+  const tabAnimation = useRef(new Animated.Value(0)).current;
+  const currentTabIndex = useRef(0);
+
   // --- Search UI state ---
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -214,6 +219,15 @@ export default function HomeScreen() {
     return reciterGroups ?? [];
   }, [browseCategory, masaibGroups, poetGroups, reciterGroups]);
 
+  // Sync current tab index with browse category
+  useEffect(() => {
+    const tabIndex = SLIDES.findIndex(slide => slide.key === browseCategory);
+    if (tabIndex !== -1) {
+      currentTabIndex.current = tabIndex;
+      tabAnimation.setValue(tabIndex);
+    }
+  }, [browseCategory]);
+
   const labelForItem = (item: MasaibGroup | PoetGroup | ReciterGroup) => {
     if (browseCategory === 'masaib') return (item as MasaibGroup).masaib;
     if (browseCategory === 'poet') return (item as PoetGroup).poet;
@@ -241,10 +255,51 @@ export default function HomeScreen() {
     }
   };
 
+  // Swipe gesture functions
+  const switchToTab = (newIndex: number) => {
+    if (newIndex < 0 || newIndex >= SLIDES.length) return;
+    
+    const newCategory = SLIDES[newIndex].key as BrowseCategory;
+    setBrowseCategory(newCategory);
+    setSearchQuery('');
+    currentTabIndex.current = newIndex;
+    
+    // Animate tab switch
+    Animated.timing(tabAnimation, {
+      toValue: newIndex,
+      duration: 300,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const onSwipeGesture = (event: any) => {
+    const { translationX, state } = event.nativeEvent;
+    
+    if (state === State.END) {
+      const threshold = 50;
+      
+      if (translationX > threshold) {
+        // Swipe right - go to previous tab
+        switchToTab(currentTabIndex.current - 1);
+      } else if (translationX < -threshold) {
+        // Swipe left - go to next tab
+        switchToTab(currentTabIndex.current + 1);
+      } else {
+        // Snap back to current position
+        Animated.timing(tabAnimation, {
+          toValue: currentTabIndex.current,
+          duration: 200,
+          useNativeDriver: false,
+        }).start();
+      }
+    }
+  };
+
   const renderItem = ({ item }: { item: any }) => (
     <PressableCard onPress={() => goToItem(item)} disabled={navigating}>
-      <View style={styles.listItem}>
-        <View style={styles.itemIconWrap}>
+      <View style={[styles.listItem, { backgroundColor: t.surface }]}>
+        <View style={[styles.itemIconWrap, { backgroundColor: t.accentSubtle }]}>
           <MaterialCommunityIcons
             name={
               browseCategory === 'masaib'
@@ -254,19 +309,19 @@ export default function HomeScreen() {
                 : 'account-music'
             }
             size={18}
-            color="#16a34a"
+            color={accentColor}
           />
         </View>
         <View style={styles.itemContent}>
-          <Text style={styles.itemName} numberOfLines={2}>
+          <Text style={[styles.itemName, { color: t.textPrimary }]} numberOfLines={2}>
             {labelForItem(item)}
           </Text>
-          <Text style={styles.itemCount}>{item.count} nohas</Text>
+          <Text style={[styles.itemCount, { color: t.textMuted }]}>{item.count} nohas</Text>
         </View>
         <MaterialCommunityIcons
           name="chevron-right"
           size={22}
-          color="#9ca3af"
+          color={t.textMuted}
         />
       </View>
     </PressableCard>
@@ -376,6 +431,13 @@ export default function HomeScreen() {
           </View>
         </Animated.View>
 
+        <PanGestureHandler
+          onHandlerStateChange={onSwipeGesture}
+          onGestureEvent={onSwipeGesture}
+          activeOffsetX={[-10, 10]}
+          failOffsetY={[-5, 5]}
+        >
+          <Animated.View style={{ flex: 1 }}>
         <AFlatList
           data={displayedItems}
           keyExtractor={(it, idx) =>
@@ -387,7 +449,7 @@ export default function HomeScreen() {
             { paddingTop: BROWSE_TOTAL + 8, paddingBottom: baseFabBottom + 88 },
           ]}
           ListHeaderComponent={
-            <View style={styles.tabsRow}>
+                <View style={[styles.tabsRow, { backgroundColor: t.background }]}>
               {SLIDES.map(s => {
                 const active = browseCategory === s.key;
                 return (
@@ -395,25 +457,25 @@ export default function HomeScreen() {
                     key={s.key}
                     activeOpacity={0.85}
                     onPress={() => {
-                      setBrowseCategory(s.key as BrowseCategory);
-                      setSearchQuery('');
-                    }}
-                    style={[
-                      styles.tabPill,
-                      { backgroundColor: t.surface, borderColor: t.border },
-                      active && { backgroundColor: accentColor, borderColor: accentColor },
-                    ]}
+                          const tabIndex = SLIDES.findIndex(slide => slide.key === s.key);
+                          switchToTab(tabIndex);
+                        }}
+                        style={[
+                          styles.tabPill,
+                          { backgroundColor: t.surface, borderColor: t.border },
+                          active && { backgroundColor: accentColor, borderColor: accentColor },
+                        ]}
                   >
                     <MaterialCommunityIcons
                       name={s.icon}
                       size={18}
-                      color={active ? t.accentOnAccent : t.textPrimary}
+                          color={active ? t.accentOnAccent : t.textPrimary}
                     />
                     <Text
                       style={[
                         styles.tabPillText,
-                        { color: t.textPrimary },
-                        active && { color: t.accentOnAccent },
+                            { color: t.textPrimary },
+                            active && { color: t.accentOnAccent },
                       ]}
                     >
                       {s.label}
@@ -439,9 +501,9 @@ export default function HomeScreen() {
               <MaterialCommunityIcons
                 name={searchOpen && searchQuery ? 'magnify' : 'database-off'}
                 size={22}
-                color={t.textMuted}
+                    color={t.textMuted}
               />
-              <Text style={[styles.emptyText, { color: t.textMuted }]}>
+                  <Text style={[styles.emptyText, { color: t.textMuted }]}>
                 {searchOpen && searchQuery ? 'No matches' : 'No results'}
               </Text>
             </View>
@@ -453,6 +515,8 @@ export default function HomeScreen() {
             default: 'none',
           })}
         />
+          </Animated.View>
+        </PanGestureHandler>
       </View>
 
       {navigating && (
@@ -508,7 +572,7 @@ export default function HomeScreen() {
           {searchOpen && (
             <TextInput
               ref={inputRef}
-              style={[styles.searchInput, { color: t.textPrimary }]}
+              style={[styles.searchInput, { color: t.textPrimary, backgroundColor: t.surface }]}
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder={`Search ${
@@ -522,6 +586,7 @@ export default function HomeScreen() {
               returnKeyType="search"
               autoCorrect={false}
               autoCapitalize="none"
+              selectionColor={accentColor}
             />
           )}
         </Animated.View>
@@ -561,7 +626,6 @@ const styles = StyleSheet.create({
   browseLabel: { color: '#ffffff', fontWeight: '700' },
 
   tabsRow: {
-    backgroundColor: '#f9fafb',
     paddingTop: 12,
     flexDirection: 'row',
     justifyContent: 'center',
@@ -585,7 +649,6 @@ const styles = StyleSheet.create({
   listContainer: { paddingHorizontal: 16 },
 
   listItem: {
-    backgroundColor: '#ffffff',
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
@@ -601,7 +664,6 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 8,
-    backgroundColor: '#ecfdf5',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
