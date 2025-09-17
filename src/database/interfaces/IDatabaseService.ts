@@ -6,6 +6,14 @@ import {
   KalaamListResponse,
 } from '../../types';
 
+export interface KalaamListResponse {
+  kalaams: Kalaam[];
+  total: number;
+  page: number; // Keep page for context, though not directly used in Firestore pagination
+  limit: number;
+  lastVisibleDoc?: any; // Add this to return the last document snapshot for cursor-based pagination
+}
+
 export interface IDatabaseService {
   init(): Promise<void>;
   close(): Promise<void>;
@@ -24,9 +32,5 @@ export interface IDatabaseService {
   getReciterGroups(): Promise<ReciterGroup[]>;
   getMasaibByReciter(reciter: string): Promise<string[]>;
   
-  // Favorites operations
-  addFavourite(kalaamId: number): Promise<void>;
-  removeFavourite(kalaamId: number): Promise<void>;
-  isFavourite(kalaamId: number): Promise<boolean>;
-  getFavouriteKalaams(page?: number, limit?: number): Promise<KalaamListResponse>;
+  // Note: Favorites operations are now handled by FavoritesService using AsyncStorage
 }

@@ -41,10 +41,15 @@ export default function PoetScreen() {
 
   const limit = 50;
 
-  const [page, setPage] = useState(1);
-  const [data, setData] = useState<KalaamListResponse | null>(null);
+  const [kalaams, setKalaams] = useState<Kalaam[]>([]);
+  const [totalKalaams, setTotalKalaams] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Pagination states
+  const [lastVisibleDoc, setLastVisibleDoc] = useState<any | undefined>(undefined);
+  const [nextPageLoading, setNextPageLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   const [selectedMasaib, setSelectedMasaib] = useState<string | null>(
     globalFilters.get(poet) || null,
@@ -89,20 +94,19 @@ export default function PoetScreen() {
   const buildMasaibList = useCallback(async () => {
     // Pull enough kalaams for this poet to compute distinct masaib
     // (no DB change needed)
-    const all: string[] = [];
-    let p = 1;
-    // Cap the loop to avoid pathological DB sizes; adjust if needed
-    const HARD_CAP_PAGES = 200;
-
-    // gather distinct masaib while paginating
     const set = new Set<string>();
-    while (p <= HARD_CAP_PAGES) {
-      const res = await DatabaseService.getKalaamsByPoet(poet, p, limit);
+    let startDoc: any;
+    const HARD_CAP_ITERATIONS = 200;
+    let iterations = 0;
+
+    while (iterations < HARD_CAP_ITERATIONS) {
+      const res = await DatabaseService.getKalaamsByPoet(poet, limit, startDoc);
       res.kalaams.forEach(k => {
         if (k.masaib) set.add(k.masaib);
       });
-      if (res.kalaams.length < limit) break;
-      p += 1;
+      if (res.kalaams.length < limit || !res.lastVisibleDoc) break;
+      startDoc = res.lastVisibleDoc;
+      iterations += 1;
     }
     const list = Array.from(set).sort((a, b) => a.localeCompare(b));
     setMasaibList(list);
@@ -110,18 +114,31 @@ export default function PoetScreen() {
   }, [poet]);
 
   // Load kalaams (with optional client-side filter by masaib)
-  const load = useCallback(async () => {
+  const load = useCallback(async (startDoc?: any, append: boolean = false) => {
     try {
-      setIsLoading(true);
+      if (!append) {
+        setIsLoading(true);
+      } else {
+        setNextPageLoading(true);
+      }
 
       // No masaib selected -> regular paginated query by poet
       if (!selectedMasaib) {
         const result = await DatabaseService.getKalaamsByPoet(
           poet,
-          page,
           limit,
+          startDoc,
         );
-        setData(result);
+        
+        if (append) {
+          setKalaams(prev => [...prev, ...result.kalaams]);
+        } else {
+          setKalaams(result.kalaams);
+        }
+        
+        setTotalKalaams(result.total);
+        setLastVisibleDoc(result.lastVisibleDoc);
+        setHasMore(result.kalaams.length === limit && !!result.lastVisibleDoc);
         setError(null);
         return;
       }
@@ -129,31 +146,47 @@ export default function PoetScreen() {
       // Masaib selected -> fetch ALL kalaams by poet and filter by masaib,
       // then paginate on the client so totals/buttons are correct.
       const all: Kalaam[] = [];
-      let p = 1;
-      const HARD_CAP_PAGES = 200;
+      let currentStartDoc: any;
+      const HARD_CAP_ITERATIONS = 200;
+      let iterations = 0;
 
-      while (p <= HARD_CAP_PAGES) {
-        const res = await DatabaseService.getKalaamsByPoet(poet, p, limit);
+      while (iterations < HARD_CAP_ITERATIONS) {
+        const res = await DatabaseService.getKalaamsByPoet(poet, limit, currentStartDoc);
         all.push(...res.kalaams);
-        if (res.kalaams.length < limit) break;
-        p += 1;
+        if (res.kalaams.length < limit || !res.lastVisibleDoc) break;
+        currentStartDoc = res.lastVisibleDoc;
+        iterations += 1;
       }
 
       const filtered = all.filter(k => k.masaib === selectedMasaib);
       const total = filtered.length;
-      const start = (page - 1) * limit;
+      
+      // For client-side pagination with masaib filter
+      const start = append ? kalaams.length : 0;
       const end = start + limit;
       const pageItems = filtered.slice(start, end);
-
-      setData({ kalaams: pageItems, total, page, limit });
+      
+      if (append) {
+        setKalaams(prev => [...prev, ...pageItems]);
+      } else {
+        setKalaams(pageItems);
+      }
+      
+      setTotalKalaams(total);
+      setLastVisibleDoc(end < total ? { hasMore: true } : undefined);
+      setHasMore(end < total);
       setError(null);
     } catch (e) {
       console.error('Failed to load poet kalaams', e);
       setError('Error loading nohas. Please try again.');
+      if (!append) {
+        setKalaams([]);
+      }
     } finally {
       setIsLoading(false);
+      setNextPageLoading(false);
     }
-  }, [poet, page, selectedMasaib]);
+  }, [poet, selectedMasaib, limit, kalaams.length]);
 
   // Effects
   useEffect(() => {
@@ -196,19 +229,27 @@ export default function PoetScreen() {
   const selectMasaib = (masaib: string) => {
     setSelectedMasaib(masaib);
     globalFilters.set(poet, masaib);
-    setPage(1);
+    setLastVisibleDoc(undefined);
+    setKalaams([]);
+    load();
     toggleFilter();
   };
 
   const clearFilter = () => {
     setSelectedMasaib(null);
     globalFilters.delete(poet);
-    setPage(1);
+    setLastVisibleDoc(undefined);
+    setKalaams([]);
+    load();
   };
 
-  const totalPages = data ? Math.ceil(data.total / limit) : 0;
+  const handleLoadMore = () => {
+    if (hasMore && !nextPageLoading && lastVisibleDoc) {
+      load(lastVisibleDoc, true);
+    }
+  };
 
-  if (isLoading && !data) {
+  if (isLoading && kalaams.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
         <AppHeader />
@@ -224,7 +265,7 @@ export default function PoetScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
         <View style={styles.errorContainer}>
-          <Text style={[styles.errorText, { color: t.danger }]}>{error}</Text>
+          <Text style={[styles.errorText]}>{error}</Text>
           <TouchableOpacity style={[styles.retryButton, { backgroundColor: accentColor }]} onPress={load}>
             <Text style={[styles.retryButtonText, { color: t.accentOnAccent }]}>Retry</Text>
           </TouchableOpacity>
@@ -253,7 +294,7 @@ export default function PoetScreen() {
               <MaterialCommunityIcons name="feather" size={18} color={t.accentOnAccent} /> {poet}
             </Text>
             <Text style={[styles.headerSubtitle, { color: t.accentOnAccent }]}>
-              {data?.total || 0} nohas by this poet
+              {totalKalaams} nohas by this poet
             </Text>
           </View>
         </View>
@@ -276,14 +317,14 @@ export default function PoetScreen() {
         )}
 
         <View style={[styles.listCard, { backgroundColor: t.surface }]}>
-          {!data || isLoading ? (
+          {isLoading && kalaams.length === 0 ? (
             <View style={styles.loadingInline}>
               <ActivityIndicator size="small" color={accentColor} />
               <Text style={[styles.loadingText, { color: t.textMuted }]}>Loading nohas...</Text>
             </View>
-          ) : data.kalaams.length > 0 ? (
+          ) : kalaams.length > 0 ? (
             <View style={styles.listDivider}>
-              {data.kalaams.map(k => (
+              {kalaams.map(k => (
                 <TouchableOpacity
                   key={k.id}
                   style={styles.itemRow}
@@ -321,6 +362,12 @@ export default function PoetScreen() {
                   />
                 </TouchableOpacity>
               ))}
+              {nextPageLoading && (
+                <View style={styles.loadingMore}>
+                  <ActivityIndicator size="small" color={accentColor} />
+                  <Text style={[styles.loadingText, { color: t.textMuted }]}>Loading more...</Text>
+                </View>
+              )}
             </View>
           ) : (
             <View style={styles.emptyState}>
@@ -331,35 +378,23 @@ export default function PoetScreen() {
           )}
         </View>
 
-        {data && totalPages > 1 ? (
-          <View style={styles.pagination}>
+        {hasMore && kalaams.length > 0 && (
+          <View style={styles.loadMoreContainer}>
             <TouchableOpacity
-              onPress={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              style={[
-                styles.pageButton,
-                { backgroundColor: accentColor },
-                page === 1 && styles.pageButtonDisabled,
-              ]}
+              style={[styles.loadMoreButton, { backgroundColor: accentColor }]}
+              onPress={handleLoadMore}
+              disabled={nextPageLoading}
             >
-              <Text style={[styles.pageButtonText, { color: t.accentOnAccent }]}>Prev</Text>
-            </TouchableOpacity>
-            <Text style={[styles.pageIndicator, { color: t.textMuted }]}>
-              {page} / {totalPages}
-            </Text>
-            <TouchableOpacity
-              onPress={() => setPage(p => (data && p < totalPages ? p + 1 : p))}
-              disabled={!data || page >= totalPages}
-              style={[
-                styles.pageButton,
-                { backgroundColor: accentColor },
-                (!data || page >= totalPages) && styles.pageButtonDisabled,
-              ]}
-            >
-              <Text style={[styles.pageButtonText, { color: t.accentOnAccent }]}>Next</Text>
+              {nextPageLoading ? (
+                <ActivityIndicator size="small" color={t.accentOnAccent} />
+              ) : (
+                <Text style={[styles.loadMoreText, { color: t.accentOnAccent }]}>
+                  Load More
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
-        ) : null}
+        )}
 
         <View style={{ height: 96 }} />
       </ScrollView>
@@ -442,7 +477,7 @@ export default function PoetScreen() {
               </TouchableOpacity>
             )}
             ListEmptyComponent={
-              <View style={styles.emptyWrap}>
+              <View style={styles.emptyState}>
                 <MaterialCommunityIcons
                   name="magnify"
                   size={24}
@@ -675,4 +710,29 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryButtonText: { color: '#ffffff', fontWeight: '600' },
+  
+  loadingMore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    gap: 8,
+  },
+  loadMoreContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  loadMoreButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  loadMoreText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
 });

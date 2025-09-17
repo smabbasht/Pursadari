@@ -7,8 +7,8 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 import AppHeader from '../components/AppHeader';
 import { useThemeTokens, useSettings } from '../context/SettingsContext';
-import DatabaseService from '../database/DatabaseService';
-import { RootStackParamList, KalaamListResponse, Kalaam } from '../types';
+import FavoritesService from '../services/FavoritesService';
+import { RootStackParamList, Kalaam } from '../types';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 
@@ -17,33 +17,59 @@ export default function FavouritesScreen() {
   const { accentColor } = useSettings();
   const navigation = useNavigation<Nav>();
   const isFocused = useIsFocused();
-  const [data, setData] = useState<KalaamListResponse | null>(null);
+  const [kalaams, setKalaams] = useState<Kalaam[]>([]);
+  const [totalKalaams, setTotalKalaams] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
   const limit = 50;
+  
+  // Pagination states
+  const [lastVisibleDoc, setLastVisibleDoc] = useState<any | undefined>(undefined);
+  const [nextPageLoading, setNextPageLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     if (isFocused) {
       load();
     }
-  }, [isFocused, page]);
+  }, [isFocused]);
 
-  const load = async () => {
+  const load = async (startDoc?: any, append: boolean = false) => {
     try {
-      setLoading(true);
-      const result = await DatabaseService.getFavouriteKalaams(page, limit);
-      setData(result);
+      if (!append) {
+        setLoading(true);
+      } else {
+        setNextPageLoading(true);
+      }
+      
+      const result = await FavoritesService.getFavoriteKalaams(limit, startDoc);
+      
+      if (append) {
+        setKalaams(prev => [...prev, ...result.kalaams]);
+      } else {
+        setKalaams(result.kalaams);
+      }
+      
+      setTotalKalaams(result.total);
+      setLastVisibleDoc(result.lastVisibleDoc);
+      setHasMore(result.kalaams.length === limit && !!result.lastVisibleDoc);
     } finally {
       setLoading(false);
+      setNextPageLoading(false);
     }
   };
 
   const remove = async (k: Kalaam) => {
-    await DatabaseService.removeFavourite(k.id);
-    load();
+    await FavoritesService.removeFavorite(k.id);
+    setKalaams(prev => prev.filter(item => item.id !== k.id));
+    setTotalKalaams(prev => prev - 1);
   };
 
-  const totalPages = data ? Math.ceil(data.total / limit) : 0;
+  const handleLoadMore = () => {
+    if (hasMore && !nextPageLoading && lastVisibleDoc) {
+      load(lastVisibleDoc, true);
+    }
+  };
+
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
@@ -52,7 +78,7 @@ export default function FavouritesScreen() {
         <View style={styles.headerCard}>
           <View style={[styles.headerBanner, { backgroundColor: accentColor }]}>
             <Text style={[styles.headerTitle, { color: t.accentOnAccent }]}><MaterialCommunityIcons name="heart" size={18} color={t.accentOnAccent} /> Your favourites</Text>
-            <Text style={[styles.headerSubtitle, { color: t.accentOnAccent }]}>{data?.total || 0} saved nohas</Text>
+            <Text style={[styles.headerSubtitle, { color: t.accentOnAccent }]}>{totalKalaams} saved nohas</Text>
           </View>
         </View>
 
@@ -61,9 +87,9 @@ export default function FavouritesScreen() {
             <ActivityIndicator size="small" color={accentColor} />
             <Text style={[styles.loadingText, { color: t.textMuted }]}>Loading favourites...</Text>
           </View>
-        ) : data && data.kalaams.length > 0 ? (
+        ) : kalaams.length > 0 ? (
           <View style={[styles.listCard, { backgroundColor: t.surface }]}>
-            {data.kalaams.map((k) => (
+            {kalaams.map((k) => (
               <View key={k.id} style={styles.itemRow}>
                 <TouchableOpacity
                   style={{ flex: 1 }}
@@ -90,22 +116,34 @@ export default function FavouritesScreen() {
                 </TouchableOpacity>
               </View>
             ))}
+            {nextPageLoading && (
+              <View style={styles.loadingMore}>
+                <ActivityIndicator size="small" color={accentColor} />
+                <Text style={[styles.loadingText, { color: t.textMuted }]}>Loading more...</Text>
+              </View>
+            )}
           </View>
         ) : (
           <View style={styles.loadingInline}><Text style={[styles.metaText, { color: t.textMuted }]}>No favourites yet.</Text></View>
         )}
 
-        {data && totalPages > 1 ? (
-          <View style={styles.pagination}>
-            <TouchableOpacity onPress={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} style={[styles.pageButton, { backgroundColor: accentColor }, page === 1 && styles.pageButtonDisabled]}>
-              <Text style={[styles.pageButtonText, { color: t.accentOnAccent }]}>Prev</Text>
-            </TouchableOpacity>
-            <Text style={[styles.pageIndicator, { color: t.textMuted }]}>{page} / {totalPages}</Text>
-            <TouchableOpacity onPress={() => setPage((p) => (p < totalPages ? p + 1 : p))} disabled={page >= totalPages} style={[styles.pageButton, { backgroundColor: accentColor }, page >= totalPages && styles.pageButtonDisabled]}>
-              <Text style={[styles.pageButtonText, { color: t.accentOnAccent }]}>Next</Text>
+        {hasMore && kalaams.length > 0 && (
+          <View style={styles.loadMoreContainer}>
+            <TouchableOpacity
+              style={[styles.loadMoreButton, { backgroundColor: accentColor }]}
+              onPress={handleLoadMore}
+              disabled={nextPageLoading}
+            >
+              {nextPageLoading ? (
+                <ActivityIndicator size="small" color={t.accentOnAccent} />
+              ) : (
+                <Text style={[styles.loadMoreText, { color: t.accentOnAccent }]}>
+                  Load More
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
-        ) : null}
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -130,4 +168,29 @@ const styles = StyleSheet.create({
   pageButtonDisabled: { backgroundColor: '#9ca3af' },
   pageButtonText: { fontWeight: '600' },
   pageIndicator: { marginHorizontal: 12, color: '#6b7280' },
+  
+  loadingMore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    gap: 8,
+  },
+  loadMoreContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  loadMoreButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  loadMoreText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
 });

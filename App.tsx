@@ -11,6 +11,8 @@ import {
   Text,
   ActivityIndicator,
   Animated,
+  Dimensions,
+  Image,
 } from 'react-native';
 import {
   NavigationContainer,
@@ -26,6 +28,7 @@ import {
 import { SettingsProvider, useSettings } from './src/context/SettingsContext';
 import { useThemeTokens } from './src/context/SettingsContext';
 import DatabaseService from './src/database/DatabaseService';
+import AsyncStorageService from './src/services/AsyncStorageService';
 import { RootStackParamList, TabParamList } from './src/types';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -43,6 +46,39 @@ import KalaamScreen from './src/screens/KalaamScreen';
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createStackNavigator<RootStackParamList>();
 
+// Progress Bar Component
+function ProgressBar({ progress, color }: { progress: number; color: string }) {
+  const width = Dimensions.get('window').width - 64; // 32px margin on each side
+  const animatedWidth = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(animatedWidth, {
+      toValue: (progress / 100) * width,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [progress, width]);
+
+  return (
+    <View style={{
+      width: width,
+      height: 4,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      borderRadius: 2,
+      overflow: 'hidden',
+    }}>
+      <Animated.View
+        style={{
+          height: '100%',
+          backgroundColor: color,
+          width: animatedWidth,
+          borderRadius: 2,
+        }}
+      />
+    </View>
+  );
+}
+
 function AnimatedTabIcon({
   name,
   color,
@@ -53,7 +89,6 @@ function AnimatedTabIcon({
   color: string;
   size: number;
   focused: boolean;
-  Dimensions;
 }) {
   const scale = React.useRef(new Animated.Value(1)).current;
 
@@ -174,13 +209,67 @@ function App() {
   const isDarkMode = useColorScheme() === 'dark';
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Keep defaults; actual values are provided by SettingsProvider
+  const [progress, setProgress] = useState(0);
+  const [initializationStep, setInitializationStep] = useState('');
 
   useEffect(() => {
     async function initializeApp() {
       try {
+        setInitializationStep('Checking app state...');
+        setProgress(10);
+        
+        // Small delay to show progress
+        await new Promise<void>(resolve => setTimeout(resolve, 200));
+        
+        // Check if app has been initialized before
+        const settings = await AsyncStorageService.loadSettings();
+        const hasBeenInitialized = settings && settings.hasBeenInitialized;
+        
+        if (hasBeenInitialized) {
+          setInitializationStep('App already initialized, loading...');
+          setProgress(50);
+          // Small delay to show progress
+          await new Promise<void>(resolve => setTimeout(resolve, 300));
+          setProgress(100);
+          // Skip database initialization if already done
+          setTimeout(() => {
+            setIsLoading(false);
+          }, 200);
+          return;
+        }
+
+        setInitializationStep('Initializing database...');
+        setProgress(30);
+        // Small delay to show progress
+        await new Promise<void>(resolve => setTimeout(resolve, 300));
+        
+        setProgress(50);
         await DatabaseService.init();
+        
+        setInitializationStep('Saving initialization state...');
+        setProgress(70);
+        // Small delay to show progress
+        await new Promise<void>(resolve => setTimeout(resolve, 200));
+        
+        // Mark app as initialized
+        const updatedSettings = {
+          ...settings,
+          hasBeenInitialized: true,
+          firstLaunchDate: new Date().toISOString(),
+        };
+        await AsyncStorageService.saveSettings(updatedSettings);
+        
+        setInitializationStep('Finalizing...');
+        setProgress(90);
+        // Small delay to show progress
+        await new Promise<void>(resolve => setTimeout(resolve, 200));
+        
+        setProgress(100);
+        
+        // Small delay to show completion
+        setTimeout(() => {
         setIsLoading(false);
+        }, 500);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Failed to initialize app',
@@ -194,38 +283,91 @@ function App() {
 
   if (isLoading) {
     return (
+      <SafeAreaProvider>
       <View
         style={{
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#ffffff',
-        }}
-      >
-        <ActivityIndicator size="large" color="#16a34a" />
-        <Text style={{ marginTop: 16, fontSize: 16, color: '#374151' }}>
-          Initializing Bayaaz...
+            backgroundColor: isDarkMode ? '#0b1220' : '#f9fafb',
+          }}
+        >
+          <Image 
+            source={require('./assets/favicon_512.png')}
+            style={{
+              width: 80,
+              height: 80,
+              marginBottom: 8,
+            }}
+            resizeMode="contain"
+          />
+          <Text style={{ 
+            marginTop: 24, 
+            fontSize: 24, 
+            fontWeight: '700',
+            color: isDarkMode ? '#e5e7eb' : '#111827',
+            marginBottom: 8,
+          }}>
+            Bayaaz
+          </Text>
+          <Text style={{ 
+            marginBottom: 32, 
+            fontSize: 16, 
+            color: isDarkMode ? '#94a3b8' : '#6b7280' 
+          }}>
+            {initializationStep}
+          </Text>
+          <ProgressBar 
+            progress={progress} 
+            color={isDarkMode ? '#e5e7eb' : '#16a34a'} 
+          />
+          <Text style={{ 
+            marginTop: 16, 
+            fontSize: 14, 
+            color: isDarkMode ? '#94a3b8' : '#6b7280' 
+          }}>
+            {progress}%
         </Text>
       </View>
+      </SafeAreaProvider>
     );
   }
 
   if (error) {
     return (
+      <SafeAreaProvider>
       <View
         style={{
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#ffffff',
+            backgroundColor: isDarkMode ? '#0b1220' : '#f9fafb',
+            paddingHorizontal: 20,
         }}
       >
+          <Image 
+            source={require('./assets/favicon_512.png')}
+            style={{
+              width: 64,
+              height: 64,
+              marginBottom: 8,
+              opacity: 0.7,
+            }}
+            resizeMode="contain"
+          />
+          <MaterialCommunityIcons 
+            name="alert-circle" 
+            size={32} 
+            color={isDarkMode ? '#ef4444' : '#dc2626'} 
+            style={{ marginTop: -16 }}
+          />
         <Text
           style={{
             fontSize: 18,
-            color: '#dc2626',
+              color: isDarkMode ? '#ef4444' : '#dc2626',
             textAlign: 'center',
-            marginHorizontal: 20,
+              marginTop: 16,
+              fontWeight: '600',
           }}
         >
           Error: {error}
@@ -234,14 +376,15 @@ function App() {
           style={{
             marginTop: 16,
             fontSize: 14,
-            color: '#6b7280',
+              color: isDarkMode ? '#94a3b8' : '#6b7280',
             textAlign: 'center',
-            marginHorizontal: 20,
+              lineHeight: 20,
           }}
         >
           Please restart the app or check your database file.
         </Text>
       </View>
+      </SafeAreaProvider>
     );
   }
 
@@ -265,7 +408,6 @@ function App() {
               paddingTop: 6,
               height: 56 + insets.bottom,
             },
-            safeAreaInsets: { bottom: 0 },
             headerShown: false,
             tabBarHideOnKeyboard: true,
           }}
