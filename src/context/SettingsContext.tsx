@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
+import AsyncStorageService from '../services/AsyncStorageService';
 
 type Theme = 'light' | 'dark';
 
@@ -45,6 +46,55 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [engFontScale, setEngFontScale] = useState<number>(1.0);
   const [urduFontScale, setUrduFontScale] = useState<number>(1.2);
   const [fontScale, setFontScale] = useState<number>(1);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load settings from AsyncStorage on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const savedSettings = await AsyncStorageService.loadSettings();
+        if (savedSettings) {
+          setTheme(savedSettings.theme || 'light');
+          setAccentColor(savedSettings.accentColor || '#16a34a');
+          setEngFont(savedSettings.engFont || 'System');
+          setUrduFont(savedSettings.urduFont || 'System');
+          setEngFontScale(savedSettings.engFontScale || 1.0);
+          setUrduFontScale(savedSettings.urduFontScale || 1.2);
+          setFontScale(savedSettings.fontScale || 1);
+        }
+      } catch (error) {
+        console.error('SettingsContext: Error loading settings:', error);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  // Save settings to AsyncStorage whenever they change
+  useEffect(() => {
+    if (!isLoaded) return; // Don't save on initial load
+
+    const saveSettings = async () => {
+      try {
+        const settings = {
+          theme,
+          accentColor,
+          engFont,
+          urduFont,
+          engFontScale,
+          urduFontScale,
+          fontScale,
+        };
+        await AsyncStorageService.saveSettings(settings);
+      } catch (error) {
+        console.error('SettingsContext: Error saving settings:', error);
+      }
+    };
+
+    saveSettings();
+  }, [theme, accentColor, engFont, urduFont, engFontScale, urduFontScale, fontScale, isLoaded]);
 
   const value = useMemo(() => ({ 
     theme, setTheme, 

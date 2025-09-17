@@ -23,7 +23,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import DatabaseService from '../database/DatabaseService';
-import { RootStackParamList, KalaamListResponse } from '../types';
+import { RootStackParamList, KalaamListResponse, Kalaam } from '../types';
 import AppHeader from '../components/AppHeader';
 import { useThemeTokens, useSettings } from '../context/SettingsContext';
 
@@ -40,10 +40,15 @@ export default function ReciterScreen() {
   const navigation = useNavigation<Nav>();
   const { reciter } = route.params;
 
-  const [page, setPage] = useState(1);
-  const [data, setData] = useState<KalaamListResponse | null>(null);
+  const [kalaams, setKalaams] = useState<Kalaam[]>([]);
+  const [totalKalaams, setTotalKalaams] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Pagination states
+  const [lastVisibleDoc, setLastVisibleDoc] = useState<any | undefined>(undefined);
+  const [nextPageLoading, setNextPageLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [selectedMasaib, setSelectedMasaib] = useState<string | null>(
     globalFilters.get(reciter) || null,
   );
@@ -63,7 +68,7 @@ export default function ReciterScreen() {
   useEffect(() => {
     load();
     loadMasaibList();
-  }, [reciter, page, selectedMasaib]);
+  }, [reciter, selectedMasaib]);
 
   // Keyboard -> set value directly (avoid mixed native/JS driver issues)
   useEffect(() => {
@@ -101,31 +106,49 @@ export default function ReciterScreen() {
     }
   }, [searchText, masaibList]);
 
-  const load = async () => {
+  const load = async (startDoc?: any, append: boolean = false) => {
     try {
+      if (!append) {
       setIsLoading(true);
+      } else {
+        setNextPageLoading(true);
+      }
+      
       let result;
       if (selectedMasaib) {
         result = await DatabaseService.getKalaamsByReciterAndMasaib(
           reciter,
           selectedMasaib,
-          page,
           limit,
+          startDoc,
         );
       } else {
         result = await DatabaseService.getKalaamsByReciter(
           reciter,
-          page,
           limit,
+          startDoc,
         );
       }
-      setData(result);
+      
+      if (append) {
+        setKalaams(prev => [...prev, ...result.kalaams]);
+      } else {
+        setKalaams(result.kalaams);
+      }
+      
+      setTotalKalaams(result.total);
+      setLastVisibleDoc(result.lastVisibleDoc);
+      setHasMore(result.kalaams.length === limit && !!result.lastVisibleDoc);
       setError(null);
     } catch (e) {
       console.error('Failed to load reciter kalaams', e);
       setError('Error loading nohas. Please try again.');
+      if (!append) {
+        setKalaams([]);
+      }
     } finally {
       setIsLoading(false);
+      setNextPageLoading(false);
     }
   };
 
@@ -158,19 +181,27 @@ export default function ReciterScreen() {
   const selectMasaib = (masaib: string) => {
     setSelectedMasaib(masaib);
     globalFilters.set(reciter, masaib);
-    setPage(1);
+    setLastVisibleDoc(undefined);
+    setKalaams([]);
+    load();
     toggleFilter();
   };
 
   const clearFilter = () => {
     setSelectedMasaib(null);
     globalFilters.delete(reciter);
-    setPage(1);
+    setLastVisibleDoc(undefined);
+    setKalaams([]);
+    load();
   };
 
-  const totalPages = data ? Math.ceil(data.total / limit) : 0;
+  const handleLoadMore = () => {
+    if (hasMore && !nextPageLoading && lastVisibleDoc) {
+      load(lastVisibleDoc, true);
+    }
+  };
 
-  if (isLoading && !data) {
+  if (isLoading && kalaams.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
         <AppHeader />
@@ -186,7 +217,7 @@ export default function ReciterScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
         <View style={styles.errorContainer}>
-          <Text style={[styles.errorText, { color: t.danger }]}>{error}</Text>
+          <Text style={[styles.errorText]}>{error}</Text>
           <TouchableOpacity style={[styles.retryButton, { backgroundColor: accentColor }]} onPress={load}>
             <Text style={[styles.retryButtonText, { color: t.accentOnAccent }]}>Retry</Text>
           </TouchableOpacity>
@@ -216,7 +247,7 @@ export default function ReciterScreen() {
               <MaterialCommunityIcons name="account-music" size={18} color={t.accentOnAccent} /> {reciter}
             </Text>
             <Text style={[styles.headerSubtitle, { color: t.accentOnAccent }]}>
-              {data?.total || 0} nohas by this reciter
+              {totalKalaams} nohas by this reciter
             </Text>
           </View>
         </View>
@@ -239,14 +270,14 @@ export default function ReciterScreen() {
         )}
 
         <View style={[styles.listCard, { backgroundColor: t.surface }]}>
-          {!data || isLoading ? (
+          {isLoading && kalaams.length === 0 ? (
             <View style={styles.loadingInline}>
               <ActivityIndicator size="small" color={accentColor} />
               <Text style={[styles.loadingText, { color: t.textMuted }]}>Loading nohas...</Text>
             </View>
-          ) : data.kalaams.length > 0 ? (
+          ) : kalaams.length > 0 ? (
             <View style={styles.listDivider}>
-              {data.kalaams.map(k => (
+              {kalaams.map(k => (
                 <TouchableOpacity
                   key={k.id}
                   style={styles.itemRow}
@@ -284,6 +315,12 @@ export default function ReciterScreen() {
                   />
                 </TouchableOpacity>
               ))}
+              {nextPageLoading && (
+                <View style={styles.loadingMore}>
+                  <ActivityIndicator size="small" color={accentColor} />
+                  <Text style={[styles.loadingText, { color: t.textMuted }]}>Loading more...</Text>
+                </View>
+              )}
             </View>
           ) : (
             <View style={styles.emptyState}>
@@ -296,35 +333,23 @@ export default function ReciterScreen() {
           )}
         </View>
 
-        {data && totalPages > 1 ? (
-          <View style={styles.pagination}>
+        {hasMore && kalaams.length > 0 && (
+          <View style={styles.loadMoreContainer}>
             <TouchableOpacity
-              onPress={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              style={[
-                styles.pageButton,
-                { backgroundColor: accentColor },
-                page === 1 && styles.pageButtonDisabled,
-              ]}
+              style={[styles.loadMoreButton, { backgroundColor: accentColor }]}
+              onPress={handleLoadMore}
+              disabled={nextPageLoading}
             >
-              <Text style={[styles.pageButtonText, { color: t.accentOnAccent }]}>Prev</Text>
-            </TouchableOpacity>
-            <Text style={[styles.pageIndicator, { color: t.textMuted }]}>
-              {page} / {totalPages}
+              {nextPageLoading ? (
+                <ActivityIndicator size="small" color={t.accentOnAccent} />
+              ) : (
+                <Text style={[styles.loadMoreText, { color: t.accentOnAccent }]}>
+                  Load More
             </Text>
-            <TouchableOpacity
-              onPress={() => setPage(p => (data && p < totalPages ? p + 1 : p))}
-              disabled={!data || page >= totalPages}
-              style={[
-                styles.pageButton,
-                { backgroundColor: accentColor },
-                (!data || page >= totalPages) && styles.pageButtonDisabled,
-              ]}
-            >
-              <Text style={[styles.pageButtonText, { color: t.accentOnAccent }]}>Next</Text>
+              )}
             </TouchableOpacity>
           </View>
-        ) : null}
+        )}
 
         <View style={{ height: 96 }} />
       </ScrollView>
@@ -652,4 +677,29 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryButtonText: { color: '#ffffff', fontWeight: '600' },
+  
+  loadingMore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    gap: 8,
+  },
+  loadMoreContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  loadMoreButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  loadMoreText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
 });

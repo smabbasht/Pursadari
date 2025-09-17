@@ -87,24 +87,7 @@ export class DatabaseService {
     return this.db.getKalaamsByReciterAndMasaib(reciter, masaib, page, limit);
   }
 
-  async addFavourite(kalaamId: number): Promise<void> {
-    return this.db.addFavourite(kalaamId);
-  }
-
-  async removeFavourite(kalaamId: number): Promise<void> {
-    return this.db.removeFavourite(kalaamId);
-  }
-
-  async isFavourite(kalaamId: number): Promise<boolean> {
-    return this.db.isFavourite(kalaamId);
-  }
-
-  async getFavouriteKalaams(
-    page: number = 1,
-    limit: number = 50,
-  ): Promise<KalaamListResponse> {
-    return this.db.getFavouriteKalaams(page, limit);
-  }
+  // Note: Favorites operations are now handled by FavoritesService using AsyncStorage
 
   async close(): Promise<void> {
     return this.db.close();

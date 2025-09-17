@@ -378,7 +378,7 @@ export default function HomeScreen() {
 
   if (initLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
         <AppHeader />
         <View style={styles.centerFill}>
           <Ring size={44} color={accentColor} />
@@ -597,9 +597,9 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+  container: { flex: 1 },
   centerFill: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { marginTop: 14, fontSize: 16, color: '#374151' },
+  loadingText: { marginTop: 14, fontSize: 16 },
 
   // container for list + parallax header
   contentWrap: { flex: 1, position: 'relative' },

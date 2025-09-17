@@ -31,6 +31,7 @@ export interface KalaamListResponse {
   total: number;
   page: number;
   limit: number;
+  lastVisibleDoc?: any; // Add this to return the last document snapshot for cursor-based pagination
 }
 
 export interface KalaamDetailResponse {

@@ -21,6 +21,7 @@ import { WebView } from 'react-native-webview';
 import { useSettings, useThemeTokens } from '../context/SettingsContext';
 
 import DatabaseService from '../database/DatabaseService';
+import FavoritesService from '../services/FavoritesService';
 import { RootStackParamList, Kalaam } from '../types';
 import AppHeader from '../components/AppHeader';
 
@@ -80,7 +81,7 @@ export default function KalaamScreen() {
       setIsLoading(true);
       const data = await DatabaseService.getKalaamById(id);
       setKalaam(data);
-      const fav = await DatabaseService.isFavourite(id);
+      const fav = await FavoritesService.isFavorite(id);
       setIsFavourite(fav);
       setError(null);
     } catch (e) {
@@ -113,10 +114,10 @@ export default function KalaamScreen() {
     try {
       if (!kalaam) return;
       if (isFavourite) {
-        await DatabaseService.removeFavourite(kalaam.id);
+        await FavoritesService.removeFavorite(kalaam.id);
         setIsFavourite(false);
       } else {
-        await DatabaseService.addFavourite(kalaam.id);
+        await FavoritesService.addFavorite(kalaam.id);
         setIsFavourite(true);
       }
     } catch (e) {

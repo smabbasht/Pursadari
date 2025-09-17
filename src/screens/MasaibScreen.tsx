@@ -41,10 +41,15 @@ export default function MasaibScreen() {
 
   const limit = 50;
 
-  const [page, setPage] = useState(1);
-  const [data, setData] = useState<KalaamListResponse | null>(null);
+  const [kalaams, setKalaams] = useState<Kalaam[]>([]);
+  const [totalKalaams, setTotalKalaams] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Pagination states
+  const [lastVisibleDoc, setLastVisibleDoc] = useState<any | undefined>(undefined);
+  const [nextPageLoading, setNextPageLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   const [selectedReciter, setSelectedReciter] = useState<string | null>(
     globalFilters.get(masaib) || null,
@@ -88,16 +93,18 @@ export default function MasaibScreen() {
   // Distinct reciters for this masaib (client-built; no DB change needed)
   const buildReciterList = useCallback(async () => {
     const set = new Set<string>();
-    let p = 1;
-    const HARD_CAP_PAGES = 200;
+    let startDoc: any;
+    const HARD_CAP_ITERATIONS = 200;
+    let iterations = 0;
 
-    while (p <= HARD_CAP_PAGES) {
-      const res = await DatabaseService.getKalaamsByMasaib(masaib, p, limit);
+    while (iterations < HARD_CAP_ITERATIONS) {
+      const res = await DatabaseService.getKalaamsByMasaib(masaib, limit, startDoc);
       res.kalaams.forEach(k => {
         if (k.reciter) set.add(k.reciter);
       });
-      if (res.kalaams.length < limit) break;
-      p += 1;
+      if (res.kalaams.length < limit || !res.lastVisibleDoc) break;
+      startDoc = res.lastVisibleDoc;
+      iterations += 1;
     }
 
     const list = Array.from(set).sort((a, b) => a.localeCompare(b));
@@ -106,37 +113,52 @@ export default function MasaibScreen() {
   }, [masaib]);
 
   // Load kalaams (either by masaib or by reciter+masaib)
-  const load = useCallback(async () => {
+  const load = useCallback(async (startDoc?: any, append: boolean = false) => {
     try {
-      setIsLoading(true);
-
-      if (!selectedReciter) {
-        const result = await DatabaseService.getKalaamsByMasaib(
-          masaib,
-          page,
-          limit,
-        );
-        setData(result);
-        setError(null);
-        return;
+      if (!append) {
+        setIsLoading(true);
+      } else {
+        setNextPageLoading(true);
       }
 
-      // Use dedicated DB method when reciter is selected
-      const result = await DatabaseService.getKalaamsByReciterAndMasaib(
-        selectedReciter,
-        masaib,
-        page,
-        limit,
-      );
-      setData(result);
+      let result: KalaamListResponse;
+      if (!selectedReciter) {
+        result = await DatabaseService.getKalaamsByMasaib(
+          masaib,
+          limit,
+          startDoc,
+        );
+      } else {
+        // Use dedicated DB method when reciter is selected
+        result = await DatabaseService.getKalaamsByReciterAndMasaib(
+          selectedReciter,
+          masaib,
+          limit,
+          startDoc,
+        );
+      }
+
+      if (append) {
+        setKalaams(prev => [...prev, ...result.kalaams]);
+      } else {
+        setKalaams(result.kalaams);
+      }
+      
+      setTotalKalaams(result.total);
+      setLastVisibleDoc(result.lastVisibleDoc);
+      setHasMore(result.kalaams.length === limit && !!result.lastVisibleDoc);
       setError(null);
     } catch (e) {
       console.error('Failed to load masaib kalaams', e);
       setError('Error loading nohas. Please try again.');
+      if (!append) {
+        setKalaams([]);
+      }
     } finally {
       setIsLoading(false);
+      setNextPageLoading(false);
     }
-  }, [masaib, page, selectedReciter]);
+  }, [masaib, selectedReciter, limit]);
 
   // Effects
   useEffect(() => {
@@ -178,19 +200,27 @@ export default function MasaibScreen() {
   const selectReciter = (reciter: string) => {
     setSelectedReciter(reciter);
     globalFilters.set(masaib, reciter);
-    setPage(1);
+    setLastVisibleDoc(undefined);
+    setKalaams([]);
+    load();
     toggleFilter();
   };
 
   const clearFilter = () => {
     setSelectedReciter(null);
     globalFilters.delete(masaib);
-    setPage(1);
+    setLastVisibleDoc(undefined);
+    setKalaams([]);
+    load();
   };
 
-  const totalPages = data ? Math.ceil(data.total / limit) : 0;
+  const handleLoadMore = () => {
+    if (hasMore && !nextPageLoading && lastVisibleDoc) {
+      load(lastVisibleDoc, true);
+    }
+  };
 
-  if (isLoading && !data) {
+  if (isLoading && kalaams.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
         <AppHeader />
@@ -206,7 +236,7 @@ export default function MasaibScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
         <View style={styles.errorContainer}>
-          <Text style={[styles.errorText, { color: t.danger }]}>{error}</Text>
+          <Text style={[styles.errorText]}>{error}</Text>
           <TouchableOpacity style={[styles.retryButton, { backgroundColor: accentColor }]} onPress={load}>
             <Text style={[styles.retryButtonText, { color: t.accentOnAccent }]}>Retry</Text>
           </TouchableOpacity>
@@ -235,7 +265,7 @@ export default function MasaibScreen() {
               <MaterialCommunityIcons name="book-open-variant" size={18} color={t.accentOnAccent} /> {masaib}
             </Text>
             <Text style={[styles.headerSubtitle, { color: t.accentOnAccent }]}>
-              {data?.total || 0} nohas in this category
+              {totalKalaams} nohas in this category
             </Text>
           </View>
         </View>
@@ -258,14 +288,14 @@ export default function MasaibScreen() {
         )}
 
         <View style={[styles.listCard, { backgroundColor: t.surface }]}>
-          {!data || isLoading ? (
+          {isLoading && kalaams.length === 0 ? (
             <View style={styles.loadingInline}>
               <ActivityIndicator size="small" color={accentColor} />
               <Text style={[styles.loadingText, { color: t.textMuted }]}>Loading nohas...</Text>
             </View>
-          ) : data.kalaams.length > 0 ? (
-            <View className="listDivider" style={styles.listDivider}>
-              {data.kalaams.map(k => (
+          ) : kalaams.length > 0 ? (
+            <View style={styles.listDivider}>
+              {kalaams.map(k => (
                 <TouchableOpacity
                   key={k.id}
                   style={styles.itemRow}
@@ -303,6 +333,12 @@ export default function MasaibScreen() {
                   />
                 </TouchableOpacity>
               ))}
+              {nextPageLoading && (
+                <View style={styles.loadingMore}>
+                  <ActivityIndicator size="small" color={accentColor} />
+                  <Text style={[styles.loadingText, { color: t.textMuted }]}>Loading more...</Text>
+                </View>
+              )}
             </View>
           ) : (
             <View style={styles.emptyState}>
@@ -313,35 +349,23 @@ export default function MasaibScreen() {
           )}
         </View>
 
-        {data && totalPages > 1 ? (
-          <View style={styles.pagination}>
+        {hasMore && kalaams.length > 0 && (
+          <View style={styles.loadMoreContainer}>
             <TouchableOpacity
-              onPress={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              style={[
-                styles.pageButton,
-                { backgroundColor: accentColor },
-                page === 1 && styles.pageButtonDisabled,
-              ]}
+              style={[styles.loadMoreButton, { backgroundColor: accentColor }]}
+              onPress={handleLoadMore}
+              disabled={nextPageLoading}
             >
-              <Text style={[styles.pageButtonText, { color: t.accentOnAccent }]}>Prev</Text>
-            </TouchableOpacity>
-            <Text style={[styles.pageIndicator, { color: t.textMuted }]}>
-              {page} / {totalPages}
-            </Text>
-            <TouchableOpacity
-              onPress={() => setPage(p => (data && p < totalPages ? p + 1 : p))}
-              disabled={!data || page >= totalPages}
-              style={[
-                styles.pageButton,
-                { backgroundColor: accentColor },
-                (!data || page >= totalPages) && styles.pageButtonDisabled,
-              ]}
-            >
-              <Text style={[styles.pageButtonText, { color: t.accentOnAccent }]}>Next</Text>
+              {nextPageLoading ? (
+                <ActivityIndicator size="small" color={t.accentOnAccent} />
+              ) : (
+                <Text style={[styles.loadMoreText, { color: t.accentOnAccent }]}>
+                  Load More
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
-        ) : null}
+        )}
 
         <View style={{ height: 96 }} />
       </ScrollView>
@@ -424,7 +448,7 @@ export default function MasaibScreen() {
               </TouchableOpacity>
             )}
             ListEmptyComponent={
-              <View style={styles.emptyWrap}>
+              <View style={styles.emptyState}>
                 <MaterialCommunityIcons
                   name="magnify"
                   size={24}
@@ -533,6 +557,31 @@ const styles = StyleSheet.create({
 
   emptyState: { padding: 16, alignItems: 'center' },
   emptyText: { color: '#6b7280' },
+
+  loadingMore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    gap: 8,
+  },
+  loadMoreContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  loadMoreButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  loadMoreText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
 
   pagination: {
     flexDirection: 'row',
@@ -657,4 +706,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryButtonText: { color: '#ffffff', fontWeight: '600' },
+  errorText: { color: '#d32f2f', textAlign: 'center' },
 });

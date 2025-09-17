@@ -21,7 +21,9 @@ export class DatabaseFactory {
 }
 
 // Configuration - Change this to switch database implementations
-const DATABASE_TYPE: DatabaseType = DatabaseType.SQLITE;
+// const DATABASE_TYPE: DatabaseType = DatabaseType.SQLITE;
+const DATABASE_TYPE: DatabaseType = DatabaseType.FIREBASE;
 
 // Export the configured database service
-export const databaseService: IDatabaseService = DatabaseFactory.create(DATABASE_TYPE);
+export const databaseService: IDatabaseService =
+  DatabaseFactory.create(DATABASE_TYPE);
