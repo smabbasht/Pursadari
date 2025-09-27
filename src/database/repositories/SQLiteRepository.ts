@@ -8,6 +8,16 @@ import {
 } from '../../types';
 import { IDatabaseService } from '../interfaces/IDatabaseService';
 
+export interface Settings {
+  theme: 'light' | 'dark';
+  accent_color: string;
+  urdu_font_size: string;
+  urdu_font: string;
+  eng_font_size: string;
+  eng_font: string;
+  default_language: 'urdu' | 'english';
+}
+
 SQLite.DEBUG(true);
 SQLite.enablePromise(true);
 
@@ -24,7 +34,17 @@ export class SQLiteRepository implements IDatabaseService {
       });
       console.log('SQLite Database initialized successfully');
 
-      // Note: Favorites table removed - now handled by FavoritesService using AsyncStorage
+      await this.db.executeSql(
+        'CREATE TABLE IF NOT EXISTS favourites (kalaam_id INTEGER PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)',
+      );
+      
+      await this.db.executeSql(`
+        CREATE TABLE IF NOT EXISTS settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
     } catch (error) {
       try {
         console.error('Failed to initialize SQLite database:', error);
@@ -93,6 +113,42 @@ export class SQLiteRepository implements IDatabaseService {
     }
 
     return { kalaams, total, page, limit };
+  }
+
+  async getSetting(key: string): Promise<string | null> {
+    if (!this.db) throw new Error('Database not initialized');
+    
+    const [result] = await this.db.executeSql(
+      'SELECT value FROM settings WHERE key = ?',
+      [key]
+    );
+    
+    return result.rows.length > 0 ? result.rows.item(0).value : null;
+  }
+
+  async setSetting(key: string, value: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    
+    await this.db.executeSql(
+      'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+      [key, value]
+    );
+  }
+
+  async getAllSettings(): Promise<Partial<Settings>> {
+    if (!this.db) throw new Error('Database not initialized');
+    
+    const [result] = await this.db.executeSql(
+      'SELECT key, value FROM settings'
+    );
+    
+    const settings: Partial<Settings> = {};
+    for (let i = 0; i < result.rows.length; i++) {
+      const row = result.rows.item(i);
+      settings[row.key as keyof Settings] = row.value;
+    }
+    
+    return settings;
   }
 
   async getKalaamsByPoet(

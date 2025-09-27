@@ -67,10 +67,16 @@ export default function KalaamScreen() {
   const [kalaam, setKalaam] = useState<Kalaam | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [language, setLanguage] = useState<'english' | 'urdu'>('english');
   const [isFavourite, setIsFavourite] = useState(false);
   const screenWidth = Dimensions.get('window').width;
-  const { engFont, urduFont, engFontScale, urduFontScale } = useSettings();
+  const { 
+    engFont, 
+    urduFont, 
+    engFontScale, 
+    urduFontScale,
+    defaultLanguage,
+    setDefaultLanguage
+  } = useSettings();
 
   useEffect(() => {
     load();
@@ -282,7 +288,7 @@ export default function KalaamScreen() {
                   styles.languageButton,
                   language === 'english' && { backgroundColor: accentColor },
                 ]}
-                onPress={() => setLanguage('english')}
+                onPress={() => setDefaultLanguage('english')}
               >
                 <Text
                   style={[
@@ -299,7 +305,7 @@ export default function KalaamScreen() {
                   styles.languageButton,
                   language === 'urdu' && { backgroundColor: accentColor },
                 ]}
-                onPress={() => setLanguage('urdu')}
+                onPress={() => setDefaultLanguage('urdu')}
               >
                 <Text
                   style={[
@@ -331,7 +337,7 @@ export default function KalaamScreen() {
             >
               {kalaam.lyrics_eng}
             </Text>
-          ) : language === 'urdu' && kalaam.lyrics_urdu ? (
+          ) : defaultLanguage === 'urdu' && kalaam.lyrics_urdu ? (
             <Text
               style={[
                 styles.lyricsText,

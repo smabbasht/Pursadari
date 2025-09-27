@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
-import AsyncStorageService from '../services/AsyncStorageService';
+import { SQLiteRepository } from '../database/repositories/SQLiteRepository';
 
 type Theme = 'light' | 'dark';
 
@@ -19,6 +19,8 @@ type SettingsValue = {
   // Legacy support
   fontScale: number;
   setFontScale: (n: number) => void;
+  defaultLanguage: 'urdu' | 'english';
+  setDefaultLanguage: (l: 'urdu' | 'english') => void;
 };
 
 const SettingsContext = createContext<SettingsValue>({
@@ -36,6 +38,8 @@ const SettingsContext = createContext<SettingsValue>({
   setUrduFontScale: () => {},
   fontScale: 1,
   setFontScale: () => {},
+  defaultLanguage: 'urdu',
+  setDefaultLanguage: () => {},
 });
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
@@ -46,65 +50,66 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [engFontScale, setEngFontScale] = useState<number>(1.0);
   const [urduFontScale, setUrduFontScale] = useState<number>(1.2);
   const [fontScale, setFontScale] = useState<number>(1);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [defaultLanguage, setDefaultLanguage] = useState<'urdu' | 'english'>('urdu');
+  const db = useMemo(() => new SQLiteRepository(), []);
 
-  // Load settings from AsyncStorage on mount
   useEffect(() => {
     const loadSettings = async () => {
-      try {
-        const savedSettings = await AsyncStorageService.loadSettings();
-        if (savedSettings) {
-          setTheme(savedSettings.theme || 'light');
-          setAccentColor(savedSettings.accentColor || '#16a34a');
-          setEngFont(savedSettings.engFont || 'System');
-          setUrduFont(savedSettings.urduFont || 'System');
-          setEngFontScale(savedSettings.engFontScale || 1.0);
-          setUrduFontScale(savedSettings.urduFontScale || 1.2);
-          setFontScale(savedSettings.fontScale || 1);
-        }
-      } catch (error) {
-        console.error('SettingsContext: Error loading settings:', error);
-      } finally {
-        setIsLoaded(true);
-      }
+      await db.init();
+      const settings = await db.getAllSettings();
+      if (settings.theme) setTheme(settings.theme as Theme);
+      if (settings.accent_color) setAccentColor(settings.accent_color);
+      if (settings.eng_font) setEngFont(settings.eng_font);
+      if (settings.urdu_font) setUrduFont(settings.urdu_font);
+      if (settings.eng_font_size) setEngFontScale(parseFloat(settings.eng_font_size));
+      if (settings.urdu_font_size) setUrduFontScale(parseFloat(settings.urdu_font_size));
+      if (settings.default_language) setDefaultLanguage(settings.default_language as 'urdu' | 'english');
     };
-
     loadSettings();
-  }, []);
+  }, [db]);
 
-  // Save settings to AsyncStorage whenever they change
-  useEffect(() => {
-    if (!isLoaded) return; // Don't save on initial load
-
-    const saveSettings = async () => {
-      try {
-        const settings = {
-          theme,
-          accentColor,
-          engFont,
-          urduFont,
-          engFontScale,
-          urduFontScale,
-          fontScale,
-        };
-        await AsyncStorageService.saveSettings(settings);
-      } catch (error) {
-        console.error('SettingsContext: Error saving settings:', error);
-      }
-    };
-
-    saveSettings();
-  }, [theme, accentColor, engFont, urduFont, engFontScale, urduFontScale, fontScale, isLoaded]);
+  const updateSetting = async (key: string, value: string) => {
+    await db.setSetting(key, value);
+  };
 
   const value = useMemo(() => ({ 
-    theme, setTheme, 
-    accentColor, setAccentColor,
-    engFont, setEngFont,
-    urduFont, setUrduFont,
-    engFontScale, setEngFontScale,
-    urduFontScale, setUrduFontScale,
-    fontScale, setFontScale 
-  }), [theme, accentColor, engFont, urduFont, engFontScale, urduFontScale, fontScale]);
+    theme, 
+    setTheme: (t: Theme) => {
+      setTheme(t);
+      updateSetting('theme', t);
+    },
+    accentColor, 
+    setAccentColor: (c: string) => {
+      setAccentColor(c);
+      updateSetting('accent_color', c);
+    },
+    engFont, 
+    setEngFont: (f: string) => {
+      setEngFont(f);
+      updateSetting('eng_font', f);
+    },
+    urduFont, 
+    setUrduFont: (f: string) => {
+      setUrduFont(f);
+      updateSetting('urdu_font', f);
+    },
+    engFontScale, 
+    setEngFontScale: (s: number) => {
+      setEngFontScale(s);
+      updateSetting('eng_font_size', s.toString());
+    },
+    urduFontScale, 
+    setUrduFontScale: (s: number) => {
+      setUrduFontScale(s);
+      updateSetting('urdu_font_size', s.toString());
+    },
+    fontScale, setFontScale,
+    defaultLanguage,
+    setDefaultLanguage: (l: 'urdu' | 'english') => {
+      setDefaultLanguage(l);
+      updateSetting('default_language', l);
+    }
+  }), [theme, accentColor, engFont, urduFont, engFontScale, urduFontScale, fontScale, defaultLanguage, db]);
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
 
