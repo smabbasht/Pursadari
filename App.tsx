@@ -28,7 +28,6 @@ import {
 import { SettingsProvider, useSettings } from './src/context/SettingsContext';
 import { useThemeTokens } from './src/context/SettingsContext';
 import DatabaseService from './src/database/DatabaseService';
-import AsyncStorageService from './src/services/AsyncStorageService';
 import { RootStackParamList, TabParamList } from './src/types';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -222,8 +221,8 @@ function App() {
         await new Promise<void>(resolve => setTimeout(resolve, 200));
         
         // Check if app has been initialized before
-        const settings = await AsyncStorageService.loadSettings();
-        const hasBeenInitialized = settings && settings.hasBeenInitialized;
+        const settings = await DatabaseService.getAllSettings();
+        const hasBeenInitialized = settings && settings.initialized === 'true';
         
         if (hasBeenInitialized) {
           setInitializationStep('App already initialized, loading...');
@@ -252,12 +251,8 @@ function App() {
         await new Promise<void>(resolve => setTimeout(resolve, 200));
         
         // Mark app as initialized
-        const updatedSettings = {
-          ...settings,
-          hasBeenInitialized: true,
-          firstLaunchDate: new Date().toISOString(),
-        };
-        await AsyncStorageService.saveSettings(updatedSettings);
+        await DatabaseService.setSetting('initialized', 'true');
+        await DatabaseService.setSetting('first_launch_date', new Date().toISOString());
         
         setInitializationStep('Finalizing...');
         setProgress(90);
