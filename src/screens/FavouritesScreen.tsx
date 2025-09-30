@@ -7,8 +7,9 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 import AppHeader from '../components/AppHeader';
 import { useThemeTokens, useSettings } from '../context/SettingsContext';
-import FavoritesService from '../services/FavoritesService';
+import databaseService from '../database/DatabaseFactory';
 import { RootStackParamList, Kalaam } from '../types';
+import FavoritesService from '../services/FavoritesService';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 

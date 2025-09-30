@@ -21,7 +21,7 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
-import DatabaseService from '../database/DatabaseService';
+import databaseService from '../database/DatabaseFactory';
 import { RootStackParamList, KalaamListResponse, Kalaam } from '../types';
 import AppHeader from '../components/AppHeader';
 import { useThemeTokens, useSettings } from '../context/SettingsContext';
@@ -46,8 +46,8 @@ export default function MasaibScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Pagination states
-  const [lastVisibleDoc, setLastVisibleDoc] = useState<any | undefined>(undefined);
+  // Pagination states (page-based)
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const [nextPageLoading, setNextPageLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
@@ -98,12 +98,12 @@ export default function MasaibScreen() {
     let iterations = 0;
 
     while (iterations < HARD_CAP_ITERATIONS) {
-      const res = await DatabaseService.getKalaamsByMasaib(masaib, limit, startDoc);
+      const page = iterations + 1;
+      const res = await databaseService.getKalaamsByMasaib(masaib, page, limit);
       res.kalaams.forEach(k => {
         if (k.reciter) set.add(k.reciter);
       });
-      if (res.kalaams.length < limit || !res.lastVisibleDoc) break;
-      startDoc = res.lastVisibleDoc;
+      if (res.kalaams.length < limit) break;
       iterations += 1;
     }
 
@@ -113,47 +113,32 @@ export default function MasaibScreen() {
   }, [masaib]);
 
   // Load kalaams (either by masaib or by reciter+masaib)
-  const load = useCallback(async (startDoc?: any, append: boolean = false) => {
+  const load = useCallback(async (page: number = 1) => {
     try {
-      if (!append) {
-        setIsLoading(true);
-      } else {
-        setNextPageLoading(true);
-      }
+      setIsLoading(true);
+      setNextPageLoading(page > 1);
 
       let result: KalaamListResponse;
       if (!selectedReciter) {
-        result = await DatabaseService.getKalaamsByMasaib(
-          masaib,
-          limit,
-          startDoc,
-        );
+        result = await databaseService.getKalaamsByMasaib(masaib, page, limit);
       } else {
-        // Use dedicated DB method when reciter is selected
-        result = await DatabaseService.getKalaamsByReciterAndMasaib(
+        result = await databaseService.getKalaamsByReciterAndMasaib(
           selectedReciter,
           masaib,
+          page,
           limit,
-          startDoc,
         );
       }
 
-      if (append) {
-        setKalaams(prev => [...prev, ...result.kalaams]);
-      } else {
-        setKalaams(result.kalaams);
-      }
-      
+      setKalaams(result.kalaams);
       setTotalKalaams(result.total);
-      setLastVisibleDoc(result.lastVisibleDoc);
-      setHasMore(result.kalaams.length === limit && !!result.lastVisibleDoc);
+      setHasMore(result.kalaams.length === limit);
+      setCurrentPage(page);
       setError(null);
     } catch (e) {
       console.error('Failed to load masaib kalaams', e);
       setError('Error loading nohas. Please try again.');
-      if (!append) {
-        setKalaams([]);
-      }
+      setKalaams([]);
     } finally {
       setIsLoading(false);
       setNextPageLoading(false);
@@ -200,24 +185,24 @@ export default function MasaibScreen() {
   const selectReciter = (reciter: string) => {
     setSelectedReciter(reciter);
     globalFilters.set(masaib, reciter);
-    setLastVisibleDoc(undefined);
     setKalaams([]);
-    load();
+    load(1);
     toggleFilter();
   };
 
   const clearFilter = () => {
     setSelectedReciter(null);
     globalFilters.delete(masaib);
-    setLastVisibleDoc(undefined);
     setKalaams([]);
-    load();
+    load(1);
   };
 
-  const handleLoadMore = () => {
-    if (hasMore && !nextPageLoading && lastVisibleDoc) {
-      load(lastVisibleDoc, true);
-    }
+  const handlePrev = () => {
+    if (currentPage > 1) load(currentPage - 1);
+  };
+
+  const handleNext = () => {
+    if (hasMore && !nextPageLoading) load(currentPage + 1);
   };
 
   if (isLoading && kalaams.length === 0) {
@@ -237,7 +222,7 @@ export default function MasaibScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
         <View style={styles.errorContainer}>
           <Text style={[styles.errorText]}>{error}</Text>
-          <TouchableOpacity style={[styles.retryButton, { backgroundColor: accentColor }]} onPress={load}>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: accentColor }]} onPress={() => load()}>
             <Text style={[styles.retryButtonText, { color: t.accentOnAccent }]}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -349,19 +334,35 @@ export default function MasaibScreen() {
           )}
         </View>
 
-        {hasMore && kalaams.length > 0 && (
-          <View style={styles.loadMoreContainer}>
+        {kalaams.length > 0 && (
+          <View style={styles.pagination}>
             <TouchableOpacity
-              style={[styles.loadMoreButton, { backgroundColor: accentColor }]}
-              onPress={handleLoadMore}
-              disabled={nextPageLoading}
+              style={
+                currentPage === 1
+                  ? [styles.pageButton, styles.pageButtonDisabled]
+                  : [styles.pageButton, { backgroundColor: accentColor }]
+              }
+              onPress={handlePrev}
+              disabled={currentPage === 1 || nextPageLoading}
+            >
+              <Text style={currentPage === 1 ? [styles.pageButtonText, { color: t.textMuted }] : [styles.pageButtonText, { color: t.accentOnAccent }]}>Prev</Text>
+            </TouchableOpacity>
+
+            <Text style={[styles.pageIndicator, { color: t.textMuted }]}>Page {currentPage}</Text>
+
+            <TouchableOpacity
+              style={
+                !hasMore
+                  ? [styles.pageButton, styles.pageButtonDisabled]
+                  : [styles.pageButton, { backgroundColor: accentColor }]
+              }
+              onPress={handleNext}
+              disabled={!hasMore || nextPageLoading}
             >
               {nextPageLoading ? (
                 <ActivityIndicator size="small" color={t.accentOnAccent} />
               ) : (
-                <Text style={[styles.loadMoreText, { color: t.accentOnAccent }]}>
-                  Load More
-                </Text>
+                <Text style={!hasMore ? [styles.pageButtonText, { color: t.textMuted }] : [styles.pageButtonText, { color: t.accentOnAccent }]}>Next</Text>
               )}
             </TouchableOpacity>
           </View>

@@ -1,34 +1,55 @@
 import { Kalaam, KalaamListResponse } from '../types';
-import AsyncStorageService from './AsyncStorageService';
-import DatabaseService from '../database/DatabaseService';
+import databaseService from '../database/DatabaseFactory';
+
 
 /**
  * Favorites Service
  * 
- * This service manages user favorites using AsyncStorage for persistence.
+ * This service manages user favorites using SQLite for persistence.
  * It provides methods to add, remove, check, and retrieve favorite kalaams.
- * The actual kalaam data is fetched from the database service when needed.
+ * The actual kalaam data is fetched from the database service.
  */
-export class FavoritesService {
+class FavoritesService {
+  private static FAVORITES_KEY = 'user_favorites';
+
+  private static async getFavoritesList(): Promise<number[]> {
+    const favoritesStr = await databaseService.getSetting(this.FAVORITES_KEY);
+    return favoritesStr ? JSON.parse(favoritesStr) : [];
+  }
+
+  private static async saveFavoritesList(favorites: number[]): Promise<void> {
+    await databaseService.setSetting(this.FAVORITES_KEY, JSON.stringify(favorites));
+  }
+
   /**
    * Add a kalaam to favorites
    */
   static async addFavorite(kalaamId: number): Promise<void> {
-    await AsyncStorageService.addFavorite(kalaamId);
+    const favorites = await this.getFavoritesList();
+    if (!favorites.includes(kalaamId)) {
+      favorites.push(kalaamId);
+      await this.saveFavoritesList(favorites);
+    }
   }
 
   /**
    * Remove a kalaam from favorites
    */
   static async removeFavorite(kalaamId: number): Promise<void> {
-    await AsyncStorageService.removeFavorite(kalaamId);
+    const favorites = await this.getFavoritesList();
+    const index = favorites.indexOf(kalaamId);
+    if (index !== -1) {
+      favorites.splice(index, 1);
+      await this.saveFavoritesList(favorites);
+    }
   }
 
   /**
    * Check if a kalaam is favorited
    */
   static async isFavorite(kalaamId: number): Promise<boolean> {
-    return await AsyncStorageService.isFavorite(kalaamId);
+    const favorites = await this.getFavoritesList();
+    return favorites.includes(kalaamId);
   }
 
   /**
@@ -39,8 +60,7 @@ export class FavoritesService {
     startAfterDoc?: any
   ): Promise<KalaamListResponse> {
     try {
-      // Get favorite IDs from AsyncStorage
-      const favoriteIds = await AsyncStorageService.loadFavorites();
+      const favoriteIds = await this.getFavoritesList();
       
       if (favoriteIds.length === 0) {
         return {
@@ -48,66 +68,31 @@ export class FavoritesService {
           total: 0,
           page: 1,
           limit,
-          hasMore: false,
-          lastVisibleDoc: undefined,
+          lastVisibleDoc: null
         };
       }
 
-      // For pagination, we'll implement a simple offset-based approach
-      // since we're working with a local array of IDs
-      const startIndex = startAfterDoc ? startAfterDoc : 0;
-      const endIndex = startIndex + limit;
-      const paginatedIds = favoriteIds.slice(startIndex, endIndex);
-
-      // Fetch kalaam details for the paginated IDs
-      const kalaams: Kalaam[] = [];
-      for (const id of paginatedIds) {
-        try {
-          const kalaam = await DatabaseService.getKalaamById(id);
-          if (kalaam) {
-            kalaams.push(kalaam);
-          }
-        } catch (error) {
-          console.warn(`FavoritesService: Could not fetch kalaam ${id}:`, error);
-        }
-      }
-
-      const hasMore = endIndex < favoriteIds.length;
-      const lastVisibleDoc = hasMore ? endIndex : undefined;
+      // Fetch kalaams by IDs
+      const promises = favoriteIds.map(id => databaseService.getKalaamById(id));
+      const kalaams = (await Promise.all(promises)).filter((k): k is Kalaam => k !== null);
 
       return {
         kalaams,
-        total: favoriteIds.length,
-        page: Math.floor(startIndex / limit) + 1,
+        total: kalaams.length,
+        page: 1,
         limit,
-        hasMore,
-        lastVisibleDoc,
+        lastVisibleDoc: null
       };
     } catch (error) {
-      console.error('FavoritesService: Error getting favorite kalaams:', error);
+      console.error('Error getting favorite kalaams:', error);
       return {
         kalaams: [],
         total: 0,
         page: 1,
         limit,
-        hasMore: false,
-        lastVisibleDoc: undefined,
+        lastVisibleDoc: null
       };
     }
-  }
-
-  /**
-   * Get all favorite IDs (useful for checking multiple items at once)
-   */
-  static async getAllFavoriteIds(): Promise<number[]> {
-    return await AsyncStorageService.loadFavorites();
-  }
-
-  /**
-   * Clear all favorites
-   */
-  static async clearAllFavorites(): Promise<void> {
-    await AsyncStorageService.saveFavorites([]);
   }
 }
 

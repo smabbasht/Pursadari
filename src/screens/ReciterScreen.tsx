@@ -22,7 +22,7 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
-import DatabaseService from '../database/DatabaseService';
+import databaseService from '../database/DatabaseFactory';
 import { RootStackParamList, KalaamListResponse, Kalaam } from '../types';
 import AppHeader from '../components/AppHeader';
 import { useThemeTokens, useSettings } from '../context/SettingsContext';
@@ -46,7 +46,7 @@ export default function ReciterScreen() {
   const [error, setError] = useState<string | null>(null);
   
   // Pagination states
-  const [lastVisibleDoc, setLastVisibleDoc] = useState<any | undefined>(undefined);
+  const [currentPage, setCurrentPage] = useState(1);
   const [nextPageLoading, setNextPageLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [selectedMasaib, setSelectedMasaib] = useState<string | null>(
@@ -58,6 +58,7 @@ export default function ReciterScreen() {
   const [searchText, setSearchText] = useState('');
   const [masaibList, setMasaibList] = useState<string[]>([]);
   const [filteredMasaib, setFilteredMasaib] = useState<string[]>([]);
+    const topResults = filteredMasaib.slice(0, 3);
 
   // Animation refs
   const searchAnimation = useRef(new Animated.Value(0)).current; // 0 closed, 1 open (JS-driven)
@@ -66,7 +67,8 @@ export default function ReciterScreen() {
   const limit = 50;
 
   useEffect(() => {
-    load();
+    setCurrentPage(1);
+    load(1);
     loadMasaibList();
   }, [reciter, selectedMasaib]);
 
@@ -106,44 +108,41 @@ export default function ReciterScreen() {
     }
   }, [searchText, masaibList]);
 
-  const load = async (startDoc?: any, append: boolean = false) => {
+  const load = async (page: number = 1) => {
     try {
-      if (!append) {
-      setIsLoading(true);
+      if (page === 1) {
+        setIsLoading(true);
       } else {
         setNextPageLoading(true);
       }
-      
+
+      await databaseService.init();
       let result;
       if (selectedMasaib) {
-        result = await DatabaseService.getKalaamsByReciterAndMasaib(
+        result = await databaseService.getKalaamsByReciterAndMasaib(
           reciter,
           selectedMasaib,
+          page,
           limit,
-          startDoc,
         );
       } else {
-        result = await DatabaseService.getKalaamsByReciter(
+        result = await databaseService.getKalaamsByReciter(
           reciter,
+          page,
           limit,
-          startDoc,
         );
       }
-      
-      if (append) {
-        setKalaams(prev => [...prev, ...result.kalaams]);
-      } else {
-        setKalaams(result.kalaams);
-      }
-      
+
+      // Page-based navigation: replace list (no append)
+      setKalaams(result.kalaams);
       setTotalKalaams(result.total);
-      setLastVisibleDoc(result.lastVisibleDoc);
-      setHasMore(result.kalaams.length === limit && !!result.lastVisibleDoc);
+      setCurrentPage(page);
+      setHasMore(result.kalaams.length === limit && result.total > page * limit);
       setError(null);
     } catch (e) {
       console.error('Failed to load reciter kalaams', e);
       setError('Error loading nohas. Please try again.');
-      if (!append) {
+      if (page === 1) {
         setKalaams([]);
       }
     } finally {
@@ -154,7 +153,7 @@ export default function ReciterScreen() {
 
   const loadMasaibList = async () => {
     try {
-      const masaibs = await DatabaseService.getMasaibByReciter(reciter);
+      const masaibs = await databaseService.getMasaibByReciter(reciter);
       setMasaibList(masaibs);
       setFilteredMasaib(masaibs);
     } catch (e) {
@@ -181,23 +180,29 @@ export default function ReciterScreen() {
   const selectMasaib = (masaib: string) => {
     setSelectedMasaib(masaib);
     globalFilters.set(reciter, masaib);
-    setLastVisibleDoc(undefined);
+    setCurrentPage(1);
     setKalaams([]);
-    load();
+    load(1);
     toggleFilter();
   };
 
   const clearFilter = () => {
     setSelectedMasaib(null);
     globalFilters.delete(reciter);
-    setLastVisibleDoc(undefined);
+    setCurrentPage(1);
     setKalaams([]);
-    load();
+    load(1);
   };
 
-  const handleLoadMore = () => {
-    if (hasMore && !nextPageLoading && lastVisibleDoc) {
-      load(lastVisibleDoc, true);
+  const handlePrev = () => {
+    if (currentPage > 1 && !nextPageLoading) {
+      load(currentPage - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (hasMore && !nextPageLoading) {
+      load(currentPage + 1);
     }
   };
 
@@ -218,7 +223,7 @@ export default function ReciterScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
         <View style={styles.errorContainer}>
           <Text style={[styles.errorText]}>{error}</Text>
-          <TouchableOpacity style={[styles.retryButton, { backgroundColor: accentColor }]} onPress={load}>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: accentColor }]} onPress={() => load()}>
             <Text style={[styles.retryButtonText, { color: t.accentOnAccent }]}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -233,9 +238,6 @@ export default function ReciterScreen() {
     outputRange: [16, 0],
   });
   const overlayLift = Animated.add(kbLift, overlayEntrance);
-
-  // Only show top 3 results
-  const topResults = filteredMasaib.slice(0, 3);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: t.background }]} edges={['top']}>
@@ -333,19 +335,35 @@ export default function ReciterScreen() {
           )}
         </View>
 
-        {hasMore && kalaams.length > 0 && (
-          <View style={styles.loadMoreContainer}>
+        {kalaams.length > 0 && (
+          <View style={styles.pagination}>
             <TouchableOpacity
-              style={[styles.loadMoreButton, { backgroundColor: accentColor }]}
-              onPress={handleLoadMore}
-              disabled={nextPageLoading}
+              style={
+                currentPage === 1
+                  ? [styles.pageButton, styles.pageButtonDisabled]
+                  : [styles.pageButton, { backgroundColor: accentColor }]
+              }
+              onPress={handlePrev}
+              disabled={currentPage === 1 || nextPageLoading}
+            >
+              <Text style={currentPage === 1 ? [styles.pageButtonText, { color: t.textMuted }] : [styles.pageButtonText, { color: t.accentOnAccent }]}>Prev</Text>
+            </TouchableOpacity>
+
+            <Text style={[styles.pageIndicator, { color: t.textMuted }]}>Page {currentPage} / {Math.max(1, Math.ceil(totalKalaams / limit))}</Text>
+
+            <TouchableOpacity
+              style={
+                !hasMore
+                  ? [styles.pageButton, styles.pageButtonDisabled]
+                  : [styles.pageButton, { backgroundColor: accentColor }]
+              }
+              onPress={handleNext}
+              disabled={!hasMore || nextPageLoading}
             >
               {nextPageLoading ? (
                 <ActivityIndicator size="small" color={t.accentOnAccent} />
               ) : (
-                <Text style={[styles.loadMoreText, { color: t.accentOnAccent }]}>
-                  Load More
-            </Text>
+                <Text style={!hasMore ? [styles.pageButtonText, { color: t.textMuted }] : [styles.pageButtonText, { color: t.accentOnAccent }]}>Next</Text>
               )}
             </TouchableOpacity>
           </View>

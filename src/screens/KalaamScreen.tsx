@@ -20,7 +20,7 @@ import YoutubePlayer from 'react-native-youtube-iframe';
 import { WebView } from 'react-native-webview';
 import { useSettings, useThemeTokens } from '../context/SettingsContext';
 
-import DatabaseService from '../database/DatabaseService';
+import { databaseService } from '../database/DatabaseFactory';
 import FavoritesService from '../services/FavoritesService';
 import { RootStackParamList, Kalaam } from '../types';
 import AppHeader from '../components/AppHeader';
@@ -78,6 +78,9 @@ export default function KalaamScreen() {
     setDefaultLanguage
   } = useSettings();
 
+  // Current language selection (derived from settings)
+  const language = defaultLanguage;
+
   useEffect(() => {
     load();
   }, [id]);
@@ -85,7 +88,8 @@ export default function KalaamScreen() {
   const load = async () => {
     try {
       setIsLoading(true);
-      const data = await DatabaseService.getKalaamById(id);
+      await databaseService.init();
+      const data = await databaseService.getKalaamById(id);
       setKalaam(data);
       const fav = await FavoritesService.isFavorite(id);
       setIsFavourite(fav);
@@ -148,7 +152,7 @@ export default function KalaamScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
         <View style={styles.errorContainer}>
           <Text style={[styles.errorText, { color: t.danger }]}>{error || 'Kalaam not found'}</Text>
-          <TouchableOpacity style={[styles.retryButton, { backgroundColor: accentColor }]} onPress={load}>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: accentColor }]} onPress={() => load()}>
             <Text style={[styles.retryButtonText, { color: t.accentOnAccent }]}>Retry</Text>
           </TouchableOpacity>
         </View>

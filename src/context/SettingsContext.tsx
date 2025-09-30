@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
-import { SQLiteRepository } from '../database/repositories/SQLiteRepository';
+import databaseService from '../database/DatabaseFactory';
+
 
 type Theme = 'light' | 'dark';
 
@@ -51,12 +52,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [urduFontScale, setUrduFontScale] = useState<number>(1.2);
   const [fontScale, setFontScale] = useState<number>(1);
   const [defaultLanguage, setDefaultLanguage] = useState<'urdu' | 'english'>('urdu');
-  const db = useMemo(() => new SQLiteRepository(), []);
 
   useEffect(() => {
     const loadSettings = async () => {
-      await db.init();
-      const settings = await db.getAllSettings();
+      await databaseService.init();
+      const settings = await databaseService.getAllSettings();
       if (settings.theme) setTheme(settings.theme as Theme);
       if (settings.accent_color) setAccentColor(settings.accent_color);
       if (settings.eng_font) setEngFont(settings.eng_font);
@@ -66,10 +66,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       if (settings.default_language) setDefaultLanguage(settings.default_language as 'urdu' | 'english');
     };
     loadSettings();
-  }, [db]);
+  }, []);
 
   const updateSetting = async (key: string, value: string) => {
-    await db.setSetting(key, value);
+    await databaseService.setSetting(key, value);
   };
 
   const value = useMemo(() => ({ 
@@ -109,7 +109,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       setDefaultLanguage(l);
       updateSetting('default_language', l);
     }
-  }), [theme, accentColor, engFont, urduFont, engFontScale, urduFontScale, fontScale, defaultLanguage, db]);
+  }), [theme, accentColor, engFont, urduFont, engFontScale, urduFontScale, fontScale, defaultLanguage]);
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
 

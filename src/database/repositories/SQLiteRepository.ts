@@ -18,42 +18,66 @@ export interface Settings {
   default_language: 'urdu' | 'english';
 }
 
-SQLite.DEBUG(true);
 SQLite.enablePromise(true);
 
 export class SQLiteRepository implements IDatabaseService {
   private db: SQLite.SQLiteDatabase | null = null;
+  private initPromise: Promise<void> | null = null;
 
   async init(): Promise<void> {
-    try {
-      this.db = await SQLite.openDatabase({
-        name: 'database.sqlite',
-        location: 'default',
-        // 1 = copy prepopulated DB from android/app/src/main/assets/www/<name>
-        createFromLocation: 1 as any,
-      });
-      console.log('SQLite Database initialized successfully');
-
-      await this.db.executeSql(
-        'CREATE TABLE IF NOT EXISTS favourites (kalaam_id INTEGER PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)',
-      );
-      
-      await this.db.executeSql(`
-        CREATE TABLE IF NOT EXISTS settings (
-          key TEXT PRIMARY KEY,
-          value TEXT NOT NULL,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-    } catch (error) {
-      try {
-        console.error('Failed to initialize SQLite database:', error);
-      } catch (_) {
-        // Fallback in case error object is not serializable
-        console.log('Failed to initialize SQLite database (non-serializable error)');
-      }
-      throw error;
+    // Return existing initialization if in progress
+    if (this.initPromise) {
+      return this.initPromise;
     }
+
+    // Return immediately if already initialized
+    if (this.db) {
+      return;
+    }
+
+    // Start new initialization
+    this.initPromise = (async () => {
+      try {
+        this.db = await SQLite.openDatabase({
+          name: 'database.sqlite',
+          createFromLocation: '~www/database.sqlite',
+          location: 'default',
+        });
+
+        // Create settings table if it doesn't exist
+        await this.db.executeSql(`
+          CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+          )
+        `);
+
+        // Insert default settings if they don't exist
+        const defaultSettings = {
+          theme: 'light',
+          accent_color: '#000000',
+          urdu_font_size: '18',
+          urdu_font: 'default',
+          eng_font_size: '16',
+          eng_font: 'default',
+          default_language: 'urdu',
+        };
+
+        for (const [key, value] of Object.entries(defaultSettings)) {
+          await this.db.executeSql(
+            'INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)',
+            [key, value],
+          );
+        }
+      } catch (error) {
+        this.db = null; // Ensure db is null on failure
+        throw error;
+      } finally {
+        this.initPromise = null;
+      }
+    })();
+
+    return this.initPromise;
   }
 
   async searchKalaams(
@@ -113,42 +137,6 @@ export class SQLiteRepository implements IDatabaseService {
     }
 
     return { kalaams, total, page, limit };
-  }
-
-  async getSetting(key: string): Promise<string | null> {
-    if (!this.db) throw new Error('Database not initialized');
-    
-    const [result] = await this.db.executeSql(
-      'SELECT value FROM settings WHERE key = ?',
-      [key]
-    );
-    
-    return result.rows.length > 0 ? result.rows.item(0).value : null;
-  }
-
-  async setSetting(key: string, value: string): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
-    
-    await this.db.executeSql(
-      'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
-      [key, value]
-    );
-  }
-
-  async getAllSettings(): Promise<Partial<Settings>> {
-    if (!this.db) throw new Error('Database not initialized');
-    
-    const [result] = await this.db.executeSql(
-      'SELECT key, value FROM settings'
-    );
-    
-    const settings: Partial<Settings> = {};
-    for (let i = 0; i < result.rows.length; i++) {
-      const row = result.rows.item(i);
-      settings[row.key as keyof Settings] = row.value;
-    }
-    
-    return settings;
   }
 
   async getKalaamsByPoet(
@@ -217,23 +205,60 @@ export class SQLiteRepository implements IDatabaseService {
       [id],
     );
 
-    if (result.rows.length > 0) {
-      return result.rows.item(0);
+    return result.rows.length > 0 ? result.rows.item(0) : null;
+  }
+
+  async getSetting(key: string): Promise<string | null> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const [result] = await this.db.executeSql(
+      'SELECT value FROM settings WHERE key = ?',
+      [key],
+    );
+
+    return result.rows.length > 0 ? result.rows.item(0).value : null;
+  }
+
+  async setSetting(key: string, value: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    await this.db.executeSql(
+      'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+      [key, value],
+    );
+  }
+
+  async getAllSettings(): Promise<Partial<Settings>> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const [result] = await this.db.executeSql(
+      'SELECT key, value FROM settings',
+    );
+
+    const settings: Partial<Settings> = {};
+    for (let i = 0; i < result.rows.length; i++) {
+      const row = result.rows.item(i);
+      settings[row.key as keyof Settings] = row.value;
     }
 
-    return null;
+    return settings;
   }
 
   async getMasaibGroups(): Promise<MasaibGroup[]> {
     if (!this.db) throw new Error('Database not initialized');
 
     const [result] = await this.db.executeSql(
-      'SELECT masaib, COUNT(*) as count FROM kalaam GROUP BY masaib ORDER BY count DESC',
+      // Order by count desc, then alphabetically
+      'SELECT masaib, COUNT(*) as count FROM kalaam WHERE masaib IS NOT NULL GROUP BY masaib ORDER BY count DESC, masaib ASC',
     );
 
     const groups: MasaibGroup[] = [];
     for (let i = 0; i < result.rows.length; i++) {
-      groups.push(result.rows.item(i));
+      const row = result.rows.item(i);
+      groups.push({
+        masaib: row.masaib,
+        count: row.count,
+      });
     }
 
     return groups;
@@ -243,12 +268,16 @@ export class SQLiteRepository implements IDatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     const [result] = await this.db.executeSql(
-      'SELECT poet, COUNT(*) as count FROM kalaam where poet is not null GROUP BY poet ORDER BY count DESC',
+      'SELECT poet, COUNT(*) as count FROM kalaam WHERE poet IS NOT NULL GROUP BY poet ORDER BY count DESC, poet ASC',
     );
 
     const groups: PoetGroup[] = [];
     for (let i = 0; i < result.rows.length; i++) {
-      groups.push(result.rows.item(i));
+      const row = result.rows.item(i);
+      groups.push({
+        poet: row.poet,
+        count: row.count,
+      });
     }
 
     return groups;
@@ -258,12 +287,16 @@ export class SQLiteRepository implements IDatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     const [result] = await this.db.executeSql(
-      'SELECT reciter, COUNT(*) as count FROM kalaam GROUP BY reciter ORDER BY count DESC',
+      'SELECT reciter, COUNT(*) as count FROM kalaam WHERE reciter IS NOT NULL GROUP BY reciter ORDER BY count DESC, reciter ASC',
     );
 
     const groups: ReciterGroup[] = [];
     for (let i = 0; i < result.rows.length; i++) {
-      groups.push(result.rows.item(i));
+      const row = result.rows.item(i);
+      groups.push({
+        reciter: row.reciter,
+        count: row.count,
+      });
     }
 
     return groups;
@@ -315,12 +348,11 @@ export class SQLiteRepository implements IDatabaseService {
     return { kalaams, total, page, limit };
   }
 
-  // Note: Favorites methods removed - now handled by FavoritesService using AsyncStorage
-
   async close(): Promise<void> {
     if (this.db) {
       await this.db.close();
       this.db = null;
+      this.initPromise = null;
     }
   }
 }

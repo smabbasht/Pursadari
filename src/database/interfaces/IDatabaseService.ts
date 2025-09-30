@@ -5,14 +5,7 @@ import {
   ReciterGroup,
   KalaamListResponse,
 } from '../../types';
-
-export interface KalaamListResponse {
-  kalaams: Kalaam[];
-  total: number;
-  page: number; // Keep page for context, though not directly used in Firestore pagination
-  limit: number;
-  lastVisibleDoc?: any; // Add this to return the last document snapshot for cursor-based pagination
-}
+import { Settings } from '../repositories/SQLiteRepository';
 
 export interface IDatabaseService {
   init(): Promise<void>;
@@ -32,5 +25,8 @@ export interface IDatabaseService {
   getReciterGroups(): Promise<ReciterGroup[]>;
   getMasaibByReciter(reciter: string): Promise<string[]>;
   
-  // Note: Favorites operations are now handled by FavoritesService using AsyncStorage
+  // Settings operations
+  getSetting(key: string): Promise<string | null>;
+  setSetting(key: string, value: string): Promise<void>;
+  getAllSettings(): Promise<Partial<Settings>>;
 }

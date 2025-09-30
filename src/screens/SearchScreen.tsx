@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import DatabaseService from '../database/DatabaseService';
+import databaseService from '../database/DatabaseFactory';
 import { Kalaam, RootStackParamList } from '../types';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -107,7 +107,7 @@ export default function SearchScreen() {
     const myReq = ++reqIdRef.current;
     setLoading(true);
     try {
-      const res = await DatabaseService.searchKalaams(qTrim, 1, 100);
+      const res = await databaseService.searchKalaams(qTrim, 1, 100);
       if (reqIdRef.current === myReq) setResults(res.kalaams);
     } catch (e) {
       // swallow or log; keep UI stable

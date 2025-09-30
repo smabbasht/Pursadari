@@ -1,29 +1,22 @@
 import { IDatabaseService } from './interfaces/IDatabaseService';
 import { SQLiteRepository } from './repositories/SQLiteRepository';
-import { FirebaseRepository } from './repositories/FirebaseRepository';
 
-export enum DatabaseType {
-  SQLITE = 'sqlite',
-  FIREBASE = 'firebase',
-}
+class DatabaseFactory {
+  private static instance: IDatabaseService | null = null;
 
-export class DatabaseFactory {
-  static create(type: DatabaseType = DatabaseType.SQLITE): IDatabaseService {
-    switch (type) {
-      case DatabaseType.SQLITE:
-        return new SQLiteRepository();
-      case DatabaseType.FIREBASE:
-        return new FirebaseRepository();
-      default:
-        throw new Error(`Unsupported database type: ${type}`);
+  static getInstance(): IDatabaseService {
+    if (!DatabaseFactory.instance) {
+      console.log('DatabaseFactory: Creating new SQLite database instance');
+      DatabaseFactory.instance = new SQLiteRepository();
+      DatabaseFactory.instance.init().catch(error => {
+        console.error('Failed to initialize database:', error);
+      });
     }
+    return DatabaseFactory.instance;
   }
 }
 
-// Configuration - Change this to switch database implementations
-// const DATABASE_TYPE: DatabaseType = DatabaseType.SQLITE;
-const DATABASE_TYPE: DatabaseType = DatabaseType.FIREBASE;
-
-// Export the configured database service
-export const databaseService: IDatabaseService =
-  DatabaseFactory.create(DATABASE_TYPE);
+// Create and export the singleton instance
+const databaseService = DatabaseFactory.getInstance();
+export { databaseService };
+export default databaseService;

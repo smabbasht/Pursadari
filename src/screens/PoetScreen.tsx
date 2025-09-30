@@ -21,7 +21,7 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
-import DatabaseService from '../database/DatabaseService';
+import databaseService from '../database/DatabaseFactory';
 import { RootStackParamList, Kalaam, KalaamListResponse } from '../types';
 import AppHeader from '../components/AppHeader';
 import { useThemeTokens, useSettings } from '../context/SettingsContext';
@@ -47,7 +47,7 @@ export default function PoetScreen() {
   const [error, setError] = useState<string | null>(null);
   
   // Pagination states
-  const [lastVisibleDoc, setLastVisibleDoc] = useState<any | undefined>(undefined);
+  const [currentPage, setCurrentPage] = useState(1);
   const [nextPageLoading, setNextPageLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
@@ -92,106 +92,72 @@ export default function PoetScreen() {
 
   // Build distinct masaib list for this poet
   const buildMasaibList = useCallback(async () => {
-    // Pull enough kalaams for this poet to compute distinct masaib
-    // (no DB change needed)
-    const set = new Set<string>();
-    let startDoc: any;
-    const HARD_CAP_ITERATIONS = 200;
-    let iterations = 0;
-
-    while (iterations < HARD_CAP_ITERATIONS) {
-      const res = await DatabaseService.getKalaamsByPoet(poet, limit, startDoc);
-      res.kalaams.forEach(k => {
-        if (k.masaib) set.add(k.masaib);
-      });
-      if (res.kalaams.length < limit || !res.lastVisibleDoc) break;
-      startDoc = res.lastVisibleDoc;
-      iterations += 1;
-    }
-    const list = Array.from(set).sort((a, b) => a.localeCompare(b));
-    setMasaibList(list);
-    setFilteredMasaib(list);
-  }, [poet]);
-
-  // Load kalaams (with optional client-side filter by masaib)
-  const load = useCallback(async (startDoc?: any, append: boolean = false) => {
     try {
-      if (!append) {
-        setIsLoading(true);
-      } else {
-        setNextPageLoading(true);
-      }
-
-      // No masaib selected -> regular paginated query by poet
-      if (!selectedMasaib) {
-        const result = await DatabaseService.getKalaamsByPoet(
-          poet,
-          limit,
-          startDoc,
-        );
-        
-        if (append) {
-          setKalaams(prev => [...prev, ...result.kalaams]);
-        } else {
-          setKalaams(result.kalaams);
-        }
-        
-        setTotalKalaams(result.total);
-        setLastVisibleDoc(result.lastVisibleDoc);
-        setHasMore(result.kalaams.length === limit && !!result.lastVisibleDoc);
-        setError(null);
-        return;
-      }
-
-      // Masaib selected -> fetch ALL kalaams by poet and filter by masaib,
-      // then paginate on the client so totals/buttons are correct.
-      const all: Kalaam[] = [];
-      let currentStartDoc: any;
+      await databaseService.init();
+      const set = new Set<string>();
+      let page = 1;
       const HARD_CAP_ITERATIONS = 200;
       let iterations = 0;
 
       while (iterations < HARD_CAP_ITERATIONS) {
-        const res = await DatabaseService.getKalaamsByPoet(poet, limit, currentStartDoc);
-        all.push(...res.kalaams);
-        if (res.kalaams.length < limit || !res.lastVisibleDoc) break;
-        currentStartDoc = res.lastVisibleDoc;
+        const res = await databaseService.getKalaamsByPoet(poet, page, limit);
+        res.kalaams.forEach(k => {
+          if (k.masaib) set.add(k.masaib);
+        });
+        if (res.kalaams.length < limit) break;
+        page += 1;
         iterations += 1;
       }
+      const list = Array.from(set).sort((a, b) => a.localeCompare(b));
+      setMasaibList(list);
+      setFilteredMasaib(list);
+    } catch (e) {
+      console.error('Failed to build masaib list:', e);
+      setMasaibList([]);
+      setFilteredMasaib([]);
+    }
+  }, [poet]);
 
-      const filtered = all.filter(k => k.masaib === selectedMasaib);
-      const total = filtered.length;
-      
-      // For client-side pagination with masaib filter
-      const start = append ? kalaams.length : 0;
-      const end = start + limit;
-      const pageItems = filtered.slice(start, end);
-      
-      if (append) {
-        setKalaams(prev => [...prev, ...pageItems]);
+  // Load kalaams (page-based). page=1 uses full-screen loader; other pages use inline loader.
+  const load = useCallback(async (page: number = 1) => {
+    try {
+      if (page === 1) {
+        setIsLoading(true);
+        setError(null);
       } else {
-        setKalaams(pageItems);
+        setNextPageLoading(true);
       }
-      
-      setTotalKalaams(total);
-      setLastVisibleDoc(end < total ? { hasMore: true } : undefined);
-      setHasMore(end < total);
+
+      await databaseService.init();
+      const result = await databaseService.getKalaamsByPoet(poet, page, limit);
+      const filteredKalaams = selectedMasaib
+        ? result.kalaams.filter(k => k.masaib === selectedMasaib)
+        : result.kalaams;
+
+      // Page-based navigation replaces the list (no append)
+      setKalaams(filteredKalaams);
+      setTotalKalaams(result.total);
+      setCurrentPage(page);
+      setHasMore(filteredKalaams.length === limit && result.total > page * limit);
       setError(null);
     } catch (e) {
-      console.error('Failed to load poet kalaams', e);
+      console.error('Failed to load poet kalaams:', e);
       setError('Error loading nohas. Please try again.');
-      if (!append) {
+      if (page === 1) {
         setKalaams([]);
+        setTotalKalaams(0);
       }
     } finally {
       setIsLoading(false);
       setNextPageLoading(false);
     }
-  }, [poet, selectedMasaib, limit, kalaams.length]);
+  }, [poet, selectedMasaib]);
 
   // Effects
   useEffect(() => {
-    load();
-  }, [load]);
+    setCurrentPage(1);
+    load(1);
+  }, [poet, selectedMasaib]);
 
   useEffect(() => {
     buildMasaibList();
@@ -229,23 +195,29 @@ export default function PoetScreen() {
   const selectMasaib = (masaib: string) => {
     setSelectedMasaib(masaib);
     globalFilters.set(poet, masaib);
-    setLastVisibleDoc(undefined);
+    setCurrentPage(1);
     setKalaams([]);
-    load();
+    load(1);
     toggleFilter();
   };
 
   const clearFilter = () => {
     setSelectedMasaib(null);
     globalFilters.delete(poet);
-    setLastVisibleDoc(undefined);
+    setCurrentPage(1);
     setKalaams([]);
-    load();
+    load(1);
   };
 
-  const handleLoadMore = () => {
-    if (hasMore && !nextPageLoading && lastVisibleDoc) {
-      load(lastVisibleDoc, true);
+  const handlePrev = () => {
+    if (currentPage > 1 && !nextPageLoading) {
+      load(currentPage - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (hasMore && !nextPageLoading) {
+      load(currentPage + 1);
     }
   };
 
@@ -266,7 +238,7 @@ export default function PoetScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
         <View style={styles.errorContainer}>
           <Text style={[styles.errorText]}>{error}</Text>
-          <TouchableOpacity style={[styles.retryButton, { backgroundColor: accentColor }]} onPress={load}>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: accentColor }]} onPress={() => load()}>
             <Text style={[styles.retryButtonText, { color: t.accentOnAccent }]}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -378,19 +350,35 @@ export default function PoetScreen() {
           )}
         </View>
 
-        {hasMore && kalaams.length > 0 && (
-          <View style={styles.loadMoreContainer}>
+        {kalaams.length > 0 && (
+          <View style={styles.pagination}>
             <TouchableOpacity
-              style={[styles.loadMoreButton, { backgroundColor: accentColor }]}
-              onPress={handleLoadMore}
-              disabled={nextPageLoading}
+              style={
+                currentPage === 1
+                  ? [styles.pageButton, styles.pageButtonDisabled]
+                  : [styles.pageButton, { backgroundColor: accentColor }]
+              }
+              onPress={handlePrev}
+              disabled={currentPage === 1 || nextPageLoading}
+            >
+              <Text style={currentPage === 1 ? [styles.pageButtonText, { color: t.textMuted }] : [styles.pageButtonText, { color: t.accentOnAccent }]}>Prev</Text>
+            </TouchableOpacity>
+
+            <Text style={[styles.pageIndicator, { color: t.textMuted }]}>Page {currentPage}</Text>
+
+            <TouchableOpacity
+              style={
+                !hasMore
+                  ? [styles.pageButton, styles.pageButtonDisabled]
+                  : [styles.pageButton, { backgroundColor: accentColor }]
+              }
+              onPress={handleNext}
+              disabled={!hasMore || nextPageLoading}
             >
               {nextPageLoading ? (
                 <ActivityIndicator size="small" color={t.accentOnAccent} />
               ) : (
-                <Text style={[styles.loadMoreText, { color: t.accentOnAccent }]}>
-                  Load More
-                </Text>
+                <Text style={!hasMore ? [styles.pageButtonText, { color: t.textMuted }] : [styles.pageButtonText, { color: t.accentOnAccent }]}>Next</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -522,8 +510,13 @@ export default function PoetScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  scrollView: { flex: 1 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#f9fafb' 
+  },
+  scrollView: { 
+    flex: 1 
+  },
 
   headerCard: {
     backgroundColor: '#ffffff',
@@ -629,18 +622,17 @@ const styles = StyleSheet.create({
   // Overlay (results top, search bottom)
   searchOverlay: {
     position: 'absolute',
-    left: 16,
-    right: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'white',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 10,
-    zIndex: 101,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   overlayInner: { flexDirection: 'column', maxHeight: 280 },
 

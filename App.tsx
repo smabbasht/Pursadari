@@ -25,9 +25,10 @@ import {
   SafeAreaProvider,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+import databaseService from './src/database/DatabaseFactory';
 import { SettingsProvider, useSettings } from './src/context/SettingsContext';
 import { useThemeTokens } from './src/context/SettingsContext';
-import DatabaseService from './src/database/DatabaseService';
+
 import { RootStackParamList, TabParamList } from './src/types';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -214,57 +215,28 @@ function App() {
   useEffect(() => {
     async function initializeApp() {
       try {
-        setInitializationStep('Checking app state...');
+        setInitializationStep('Initializing database...');
         setProgress(10);
         
-        // Small delay to show progress
-        await new Promise<void>(resolve => setTimeout(resolve, 200));
+        await databaseService.init();
         
-        // Check if app has been initialized before
-        const settings = await DatabaseService.getAllSettings();
-        const hasBeenInitialized = settings && settings.initialized === 'true';
-        
-        if (hasBeenInitialized) {
-          setInitializationStep('App already initialized, loading...');
-          setProgress(50);
-          // Small delay to show progress
-          await new Promise<void>(resolve => setTimeout(resolve, 300));
-          setProgress(100);
-          // Skip database initialization if already done
-          setTimeout(() => {
-            setIsLoading(false);
-          }, 200);
-          return;
-        }
-
-        setInitializationStep('Initializing database...');
-        setProgress(30);
-        // Small delay to show progress
-        await new Promise<void>(resolve => setTimeout(resolve, 300));
-        
+        setInitializationStep('Loading settings...');
         setProgress(50);
-        await DatabaseService.init();
         
-        setInitializationStep('Saving initialization state...');
-        setProgress(70);
-        // Small delay to show progress
-        await new Promise<void>(resolve => setTimeout(resolve, 200));
-        
-        // Mark app as initialized
-        await DatabaseService.setSetting('initialized', 'true');
-        await DatabaseService.setSetting('first_launch_date', new Date().toISOString());
+        // Small delay for visual feedback
+        await new Promise<void>(resolve => setTimeout(resolve, 300));
         
         setInitializationStep('Finalizing...');
         setProgress(90);
-        // Small delay to show progress
+        
         await new Promise<void>(resolve => setTimeout(resolve, 200));
         
         setProgress(100);
         
-        // Small delay to show completion
         setTimeout(() => {
-        setIsLoading(false);
+          setIsLoading(false);
         }, 500);
+        
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Failed to initialize app',

@@ -22,7 +22,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import AppHeader from '../components/AppHeader';
 import { useThemeTokens, useSettings } from '../context/SettingsContext';
-import DatabaseService from '../database/DatabaseService';
+import databaseService from '../database/DatabaseFactory';
 import {
   RootStackParamList,
   MasaibGroup,
@@ -194,10 +194,13 @@ export default function HomeScreen() {
     (async () => {
       setInitLoading(true);
       try {
+        // Ensure database is initialized
+        await databaseService.init();
+        
         const [m, p, r] = await Promise.all([
-          DatabaseService.getMasaibGroups(),
-          DatabaseService.getPoetGroups(),
-          DatabaseService.getReciterGroups(),
+          databaseService.getMasaibGroups(),
+          databaseService.getPoetGroups(),
+          databaseService.getReciterGroups(),
         ]);
         setMasaibGroups(m);
         setPoetGroups(p);

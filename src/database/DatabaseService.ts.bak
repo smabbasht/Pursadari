@@ -1,0 +1,135 @@
+import {
+  Kalaam,
+  MasaibGroup,
+  PoetGroup,
+  ReciterGroup,
+  KalaamListResponse,
+} from '../types';
+import { databaseService } from './DatabaseFactory';
+
+/**
+ * DatabaseService - Facade for database operations
+ * 
+ * This service acts as a facade over the actual database implementation.
+ * It uses the DatabaseFactory to get the configured database service
+ * (currently SQLite, but easily switchable to Firebase).
+ * 
+ * To switch to Firebase in the future:
+ * 1. Change DATABASE_TYPE in DatabaseFactory.ts to DatabaseType.FIREBASE
+ * 2. Implement the FirebaseRepository methods
+ * 3. No changes needed in this file or any consuming code
+ */
+import { Settings } from './repositories/SQLiteRepository';
+
+export class DatabaseService {
+  private static instance: DatabaseService;
+  private db = databaseService;
+  
+  private constructor() {}
+  
+  static getInstance(): DatabaseService {
+    if (!DatabaseService.instance) {
+      DatabaseService.instance = new DatabaseService();
+    }
+    return DatabaseService.instance;
+  }
+
+  static async init(): Promise<void> {
+    const instance = DatabaseService.getInstance();
+    await instance.db.init();
+    
+    // Ensure default settings exist
+    const settings = await instance.db.getAllSettings();
+    if (!settings.theme) {
+      await instance.db.setSetting('theme', 'light');
+    }
+    if (!settings.accent_color) {
+      await instance.db.setSetting('accent_color', '#16a34a');
+    }
+  }
+
+  static async getSetting(key: string): Promise<string | null> {
+    const instance = DatabaseService.getInstance();
+    return instance.db.getSetting(key);
+  }
+
+  static async setSetting(key: string, value: string): Promise<void> {
+    const instance = DatabaseService.getInstance();
+    return instance.db.setSetting(key, value);
+  }
+
+  static async getAllSettings(): Promise<Partial<Settings>> {
+    const instance = DatabaseService.getInstance();
+    return instance.db.getAllSettings();
+  }
+
+  static async searchKalaams(
+    query: string,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<KalaamListResponse> {
+    const instance = DatabaseService.getInstance();
+    return instance.db.searchKalaams(query, page, limit);
+  }
+
+  static async getKalaamsByMasaib(
+    masaib: string,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<KalaamListResponse> {
+    return this.db.getKalaamsByMasaib(masaib, page, limit);
+  }
+
+  async getKalaamsByPoet(
+    poet: string,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<KalaamListResponse> {
+    return this.db.getKalaamsByPoet(poet, page, limit);
+  }
+
+  async getKalaamsByReciter(
+    reciter: string,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<KalaamListResponse> {
+    return this.db.getKalaamsByReciter(reciter, page, limit);
+  }
+
+  async getKalaamById(id: number): Promise<Kalaam | null> {
+    return this.db.getKalaamById(id);
+  }
+
+  async getMasaibGroups(): Promise<MasaibGroup[]> {
+    return this.db.getMasaibGroups();
+  }
+
+  async getPoetGroups(): Promise<PoetGroup[]> {
+    return this.db.getPoetGroups();
+  }
+
+  async getReciterGroups(): Promise<ReciterGroup[]> {
+    return this.db.getReciterGroups();
+  }
+
+  async getMasaibByReciter(reciter: string): Promise<string[]> {
+    return this.db.getMasaibByReciter(reciter);
+  }
+
+  async getKalaamsByReciterAndMasaib(
+    reciter: string,
+    masaib: string,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<KalaamListResponse> {
+    return this.db.getKalaamsByReciterAndMasaib(reciter, masaib, page, limit);
+  }
+
+  // Note: Favorites operations are now handled by FavoritesService using AsyncStorage
+
+  async close(): Promise<void> {
+    return this.db.close();
+  }
+}
+
+export default new DatabaseService();
