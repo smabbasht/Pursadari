@@ -5,7 +5,12 @@ import { useThemeTokens } from '../context/SettingsContext';
 export default function AppHeader() {
   const t = useThemeTokens();
   return (
-    <View style={[styles.header, { backgroundColor: t.surface, borderBottomColor: t.border }] }>
+    <View
+      style={[
+        styles.header,
+        { backgroundColor: t.surface, borderBottomColor: t.border },
+      ]}
+    >
       <View style={styles.innerRow}>
         <View style={styles.logoWrap}>
           <Image
@@ -13,7 +18,7 @@ export default function AppHeader() {
             style={styles.logo}
           />
         </View>
-        <Text style={[styles.title, { color: t.textPrimary }]}>Bayaaz</Text>
+        <Text style={[styles.title, { color: t.textPrimary }]}>Pursadari</Text>
       </View>
     </View>
   );

@@ -1,4 +1,4 @@
-package com.bayaaz
+package com.pursadari
 
 import android.app.Application
 import com.facebook.react.PackageList

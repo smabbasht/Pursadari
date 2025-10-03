@@ -1,14 +1,17 @@
-# Bayaaz Database Schema
+# Pursadari Database Schema
 
 ## Overview
-Bayaaz uses SQLite with 5 tables split across client and server responsibilities.
+
+Pursadari uses SQLite with 5 tables split across client and server responsibilities.
 
 ### Client-Side Tables
 
 These table reside solely on client (end-user mobile devices) and we don't sync it to server since we don't want per user settings store as we haven't implemented users thinking it would be expensive and also it hinders quick access; signup singin sucks.
 
 #### 1. Settings Metadata
+
 Stores app configuration and user preferences.
+
 ```sql
 CREATE TABLE settings (
     key TEXT PRIMARY KEY,      -- Setting identifier
@@ -16,18 +19,22 @@ CREATE TABLE settings (
     updated_at DATETIME        -- Last modification timestamp
 );
 ```
-Decided keys list (expandable): 
+
+Decided keys list (expandable):
+
 - theme
-- accent_color 
+- accent_color
 - urdu_font
-- eng_font 
-- urdu_font_size 
+- eng_font
+- urdu_font_size
 - eng_font_size
 - default_language_of_lyrics
 - last_source_sync_timestamp etc.
 
 #### 2. Favourites
+
 Tracks user's favourite kalaams.
+
 ```sql
 CREATE TABLE favourites (
     kalaam_id INTEGER PRIMARY KEY,  -- Reference to kalaam table
@@ -40,7 +47,9 @@ CREATE TABLE favourites (
 There is just one table that exists both on server side and on client side with the server side being the source of truth and client side syncing changes from server side periodically like in 30 mins or so if app has internet connectivity and app gets open.
 
 #### 3. Kalaam
+
 Primary content table, synced to client.
+
 ```sql
 CREATE TABLE kalaam (
     id INTEGER PRIMARY KEY,
@@ -57,10 +66,12 @@ CREATE TABLE kalaam (
 
 ### Server-side Tables
 
-These table reside solely on server and client (end user devices) never get these table since they aren't relevant to them. 
+These table reside solely on server and client (end user devices) never get these table since they aren't relevant to them.
 
 #### 4. Kalaam Source
+
 Tracks origin of each kalaam for data management.
+
 ```sql
 CREATE TABLE kalaam_source (
     source TEXT NOT NULL,          -- e.g., 'nohayonline', 'nauhalyrics'
@@ -72,7 +83,9 @@ CREATE TABLE kalaam_source (
 ```
 
 #### 5. Scraping Metadata
+
 Manages scraping operations and scheduling.
+
 ```sql
 CREATE TABLE scraping_metadata (
     source TEXT PRIMARY KEY,    -- Source identifier
@@ -81,6 +94,7 @@ CREATE TABLE scraping_metadata (
 ```
 
 ## Sync Strategy
+
 - Kalaam table syncs hourly when online
 - Manual sync available
 - Client-side tables remain local
@@ -88,12 +102,15 @@ CREATE TABLE scraping_metadata (
 - New content propagates through kalaam table sync
 
 ## Data Flow
+
 1. Server scrapes sources using scraping_metadata
 2. New content added to kalaam and kalaam_sources
 3. Kalaam table syncs to clients
 4. Clients maintain their settings and favourites locally
 
 ## Notes
+
 - All timestamps use UTC
 - Source IDs must be preserved for update tracking
 - Client sync is one-way (server to client) for kalaam table
+

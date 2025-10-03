@@ -1,6 +1,6 @@
 /**
- * Bayaaz App
- * https://github.com/smabbasht/Bayaaz
+ * PursaDari App
+ * https://github.com/smabbasht/PursaDari
  */
 
 import React, { useEffect, useState } from 'react';
@@ -60,13 +60,15 @@ function ProgressBar({ progress, color }: { progress: number; color: string }) {
   }, [progress, width]);
 
   return (
-    <View style={{
-      width: width,
-      height: 4,
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-      borderRadius: 2,
-      overflow: 'hidden',
-    }}>
+    <View
+      style={{
+        width: width,
+        height: 4,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 2,
+        overflow: 'hidden',
+      }}
+    >
       <Animated.View
         style={{
           height: '100%',
@@ -217,26 +219,25 @@ function App() {
       try {
         setInitializationStep('Initializing database...');
         setProgress(10);
-        
+
         await databaseService.init();
-        
+
         setInitializationStep('Loading settings...');
         setProgress(50);
-        
+
         // Small delay for visual feedback
         await new Promise<void>(resolve => setTimeout(resolve, 300));
-        
+
         setInitializationStep('Finalizing...');
         setProgress(90);
-        
+
         await new Promise<void>(resolve => setTimeout(resolve, 200));
-        
+
         setProgress(100);
-        
+
         setTimeout(() => {
           setIsLoading(false);
         }, 500);
-        
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Failed to initialize app',
@@ -251,15 +252,15 @@ function App() {
   if (isLoading) {
     return (
       <SafeAreaProvider>
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
             backgroundColor: isDarkMode ? '#0b1220' : '#f9fafb',
           }}
         >
-          <Image 
+          <Image
             source={require('./assets/favicon_512.png')}
             style={{
               width: 80,
@@ -268,34 +269,40 @@ function App() {
             }}
             resizeMode="contain"
           />
-          <Text style={{ 
-            marginTop: 24, 
-            fontSize: 24, 
-            fontWeight: '700',
-            color: isDarkMode ? '#e5e7eb' : '#111827',
-            marginBottom: 8,
-          }}>
-            Bayaaz
+          <Text
+            style={{
+              marginTop: 24,
+              fontSize: 24,
+              fontWeight: '700',
+              color: isDarkMode ? '#e5e7eb' : '#111827',
+              marginBottom: 8,
+            }}
+          >
+            Pursadari
           </Text>
-          <Text style={{ 
-            marginBottom: 32, 
-            fontSize: 16, 
-            color: isDarkMode ? '#94a3b8' : '#6b7280' 
-          }}>
+          <Text
+            style={{
+              marginBottom: 32,
+              fontSize: 16,
+              color: isDarkMode ? '#94a3b8' : '#6b7280',
+            }}
+          >
             {initializationStep}
           </Text>
-          <ProgressBar 
-            progress={progress} 
-            color={isDarkMode ? '#e5e7eb' : '#16a34a'} 
+          <ProgressBar
+            progress={progress}
+            color={isDarkMode ? '#e5e7eb' : '#16a34a'}
           />
-          <Text style={{ 
-            marginTop: 16, 
-            fontSize: 14, 
-            color: isDarkMode ? '#94a3b8' : '#6b7280' 
-          }}>
+          <Text
+            style={{
+              marginTop: 16,
+              fontSize: 14,
+              color: isDarkMode ? '#94a3b8' : '#6b7280',
+            }}
+          >
             {progress}%
-        </Text>
-      </View>
+          </Text>
+        </View>
       </SafeAreaProvider>
     );
   }
@@ -303,16 +310,16 @@ function App() {
   if (error) {
     return (
       <SafeAreaProvider>
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
             backgroundColor: isDarkMode ? '#0b1220' : '#f9fafb',
             paddingHorizontal: 20,
-        }}
-      >
-          <Image 
+          }}
+        >
+          <Image
             source={require('./assets/favicon_512.png')}
             style={{
               width: 64,
@@ -322,35 +329,35 @@ function App() {
             }}
             resizeMode="contain"
           />
-          <MaterialCommunityIcons 
-            name="alert-circle" 
-            size={32} 
-            color={isDarkMode ? '#ef4444' : '#dc2626'} 
+          <MaterialCommunityIcons
+            name="alert-circle"
+            size={32}
+            color={isDarkMode ? '#ef4444' : '#dc2626'}
             style={{ marginTop: -16 }}
           />
-        <Text
-          style={{
-            fontSize: 18,
+          <Text
+            style={{
+              fontSize: 18,
               color: isDarkMode ? '#ef4444' : '#dc2626',
-            textAlign: 'center',
+              textAlign: 'center',
               marginTop: 16,
               fontWeight: '600',
-          }}
-        >
-          Error: {error}
-        </Text>
-        <Text
-          style={{
-            marginTop: 16,
-            fontSize: 14,
+            }}
+          >
+            Error: {error}
+          </Text>
+          <Text
+            style={{
+              marginTop: 16,
+              fontSize: 14,
               color: isDarkMode ? '#94a3b8' : '#6b7280',
-            textAlign: 'center',
+              textAlign: 'center',
               lineHeight: 20,
-          }}
-        >
-          Please restart the app or check your database file.
-        </Text>
-      </View>
+            }}
+          >
+            Please restart the app or check your database file.
+          </Text>
+        </View>
       </SafeAreaProvider>
     );
   }

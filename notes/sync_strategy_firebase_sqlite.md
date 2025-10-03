@@ -1,13 +1,15 @@
 # Firebase to SQLite Sync Strategy
 
 ## Overview
-Bayaaz implements a hybrid sync approach combining background tasks with foreground sync triggers for Android devices. This ensures reliable data synchronization while maintaining battery efficiency and user experience.
+
+Pursadari implements a hybrid sync approach combining background tasks with foreground sync triggers for Android devices. This ensures reliable data synchronization while maintaining battery efficiency and user experience.
 
 ## Sync Options Considered
 
 ### 1. Firebase Realtime Database Listener
+
 - **Pros**: Real-time updates
-- **Cons**: 
+- **Cons**:
   - Battery intensive
   - Constant connection required
   - Higher data usage
@@ -15,13 +17,15 @@ Bayaaz implements a hybrid sync approach combining background tasks with foregro
 - **Decision**: Rejected due to resource constraints
 
 ### 2. Periodic REST API Calls
+
 - **Pros**: Simple implementation
-- **Cons**: 
+- **Cons**:
   - May miss updates between intervals
   - No guarantee of data consistency
 - **Decision**: Rejected due to reliability concerns
 
 ### 3. Hybrid Background + Foreground Sync (Selected)
+
 - **Pros**:
   - Battery efficient
   - Reliable data delivery
@@ -35,6 +39,7 @@ Bayaaz implements a hybrid sync approach combining background tasks with foregro
 ## Implementation Details
 
 ### Background Sync Configuration
+
 ```typescript
 minimumFetchInterval: 30, // 30 minutes
 stopOnTerminate: false,   // Continue after app close
@@ -43,12 +48,15 @@ enableHeadless: true     // Run without UI
 ```
 
 ### Sync Logic
+
 1. **Trigger Points**:
+
    - App launch
    - Every 30 minutes in background
    - Device reboot
 
 2. **Sync Process**:
+
    ```typescript
    - Get last_source_sync_timestamp from SQLite
    - Query Firebase for records newer than timestamp
@@ -64,12 +72,14 @@ enableHeadless: true     // Run without UI
 ## Android-Specific Considerations
 
 1. **Background Processing**
+
    - Uses `react-native-background-fetch`
    - Survives app termination
    - Respects Android Doze mode
    - Auto-starts on device boot
 
 2. **Battery Optimization**
+
    - 30-minute minimum interval
    - Network-aware sync attempts
    - Batch processing to reduce wake cycles
@@ -94,11 +104,13 @@ class SyncManager {
 ## Future Improvements
 
 1. **Sync Optimization**
+
    - Adaptive sync intervals based on update frequency
    - Wi-Fi only sync option
    - Conflict resolution for edge cases
 
 2. **Monitoring**
+
    - Sync success/failure tracking
    - Performance metrics
    - Battery impact analysis
@@ -109,4 +121,6 @@ class SyncManager {
    - Background sync toggle
 
 ## Conclusion
+
 The hybrid sync approach provides reliable data delivery while maintaining battery efficiency. Android-specific optimizations ensure consistent operation across different device states and conditions.
+

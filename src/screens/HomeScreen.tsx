@@ -385,7 +385,7 @@ export default function HomeScreen() {
         <AppHeader />
         <View style={styles.centerFill}>
           <Ring size={44} color={accentColor} />
-          <Text style={[styles.loadingText, { color: t.textSecondary }]}>Loading Bayaaz…</Text>
+          <Text style={[styles.loadingText, { color: t.textSecondary }]}>Loading Pursadari…</Text>
         </View>
       </SafeAreaView>
     );

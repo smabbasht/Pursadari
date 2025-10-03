@@ -1,7 +1,7 @@
 module.exports = {
   project: {
     android: {
-      packageName: 'com.bayaaz',
+      packageName: 'com.pursadari',
     },
   },
   assets: ['./node_modules/react-native-vector-icons/Fonts'],
