@@ -212,8 +212,119 @@ function TabNavigator({ onHeaderPress }: { onHeaderPress: () => void }) {
   );
 }
 
+// Launch Screen Component that can access theme settings
+function LaunchScreen({ 
+  progress, 
+  onPress 
+}: { 
+  progress: number; 
+  onPress: () => void; 
+}) {
+  const { theme } = useSettings();
+  const isDarkMode = theme === 'dark';
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: isDarkMode ? '#0b1220' : '#f9fafb',
+      }}
+    >
+      {/* Modern Launch Screen Design */}
+      <TouchableOpacity
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 20,
+        }}
+        onPress={onPress}
+        activeOpacity={1}
+      >
+        {/* Calligraphy Logo - Top Section */}
+        <View
+          style={{
+            marginTop: -20,
+            marginBottom: 16,
+            alignItems: 'center',
+          }}
+        >
+          <Image
+            source={isDarkMode ? require('./assets/pursadari-calligraphy-dark.png') : require('./assets/pursadari-calligraphy-light.png')}
+            style={{
+              width: 200,
+              height: 60,
+              resizeMode: 'contain',
+            }}
+          />
+        </View>
+
+        {/* Main Image - Center Section */}
+        <Image
+          source={isDarkMode ? require('./assets/intro-pic-dark.png') : require('./assets/intro-pic-light.png')}
+          style={{
+            width: 320,
+            height: 320,
+            borderRadius: 24,
+            shadowColor: '#000000',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.3,
+            shadowRadius: 12,
+            elevation: 8,
+            marginBottom: 16,
+          }}
+          resizeMode="cover"
+        />
+
+        {/* Progress Section - Bottom Section */}
+        <View
+          style={{
+            alignItems: 'center',
+            paddingHorizontal: 20,
+          }}
+        >
+          <Text
+            style={{
+              marginBottom: 16,
+              fontSize: 18,
+              color: isDarkMode ? '#ffffff' : '#000000',
+              textAlign: 'center',
+              fontFamily: 'Roboto-Medium',
+              textShadowColor: isDarkMode ? '#000000' : '#ffffff',
+              textShadowOffset: { width: 1, height: 1 },
+              textShadowRadius: 2,
+            }}
+          >
+            Tap Anywhere
+          </Text>
+          
+          <ProgressBar
+            progress={progress}
+            color={isDarkMode ? '#ffffff' : '#16a34a'}
+          />
+          
+          <Text
+            style={{
+              marginTop: 12,
+              fontSize: 16,
+              color: isDarkMode ? '#ffffff' : '#000000',
+              fontFamily: 'Roboto-Regular',
+              textShadowColor: isDarkMode ? '#000000' : '#ffffff',
+              textShadowOffset: { width: 1, height: 1 },
+              textShadowRadius: 2,
+            }}
+          >
+            {progress < 100 ? 'Initializing...' : 'Ready to continue'}
+          </Text>
+        </View>
+
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+  const systemIsDark = useColorScheme() === 'dark';
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -271,161 +382,6 @@ function App() {
     initializeApp();
   }, []);
 
-  if (isLoading || showLaunchScreen) {
-    return (
-      <SafeAreaProvider>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: isDarkMode ? '#0b1220' : '#f9fafb',
-          }}
-        >
-          {/* Modern Launch Screen Design */}
-          <TouchableOpacity
-            style={{
-              flex: 1,
-              position: 'relative',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-            onPress={() => {
-              if (progress >= 100) {
-                if (showLaunchScreen) {
-                  setShowLaunchScreen(false);
-                } else {
-                  setIsLoading(false);
-                }
-              }
-            }}
-            activeOpacity={1}
-          >
-            {/* Background Image */}
-            <Image
-              source={isDarkMode ? require('./assets/intro-pic-dark.png') : require('./assets/intro-pic-light.png')}
-              style={{
-                width: 320,
-                height: 320,
-                borderRadius: 24,
-                shadowColor: '#000000',
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.3,
-                shadowRadius: 16,
-              }}
-              resizeMode="cover"
-            />
-
-            {/* Calligraphy Logo Overlay */}
-            <View
-              style={{
-                position: 'absolute',
-                top: 80,
-                left: 0,
-                right: 0,
-                alignItems: 'center',
-                zIndex: 20,
-              }}
-            >
-              <Image
-                source={isDarkMode ? require('./assets/pursadari-calligraphy-dark.png') : require('./assets/pursadari-calligraphy-light.png')}
-                style={{
-                  width: 200,
-                  height: 60,
-                  resizeMode: 'contain',
-                }}
-              />
-            </View>
-
-            {/* Progress Section */}
-            {progress < 100 ? (
-              <View
-                style={{
-                  position: 'absolute',
-                  bottom: 100,
-                  left: 0,
-                  right: 0,
-                  alignItems: 'center',
-                  zIndex: 20,
-                }}
-              >
-          <Text
-            style={{
-                    marginBottom: 20,
-                    fontSize: 18,
-                    color: isDarkMode ? '#ffffff' : '#000000',
-                    textAlign: 'center',
-                    fontFamily: 'Roboto-Medium',
-                    textShadowColor: isDarkMode ? '#000000' : '#ffffff',
-                    textShadowOffset: { width: 1, height: 1 },
-                    textShadowRadius: 2,
-            }}
-          >
-            {initializationStep}
-          </Text>
-          <ProgressBar
-            progress={progress}
-                  color={isDarkMode ? '#ffffff' : '#16a34a'}
-          />
-          <Text
-            style={{
-              marginTop: 16,
-                    fontSize: 16,
-                    color: isDarkMode ? '#ffffff' : '#000000',
-                    fontFamily: 'Roboto-Regular',
-                    textShadowColor: isDarkMode ? '#000000' : '#ffffff',
-                    textShadowOffset: { width: 1, height: 1 },
-                    textShadowRadius: 2,
-            }}
-          >
-            {progress}%
-          </Text>
-              </View>
-            ) : (
-              /* Elegant Tap to Continue Instruction */
-              <View
-                style={{
-                  position: 'absolute',
-                  bottom: 80,
-                  left: 0,
-                  right: 0,
-                  alignItems: 'center',
-                  zIndex: 20,
-                }}
-              >
-                <View
-                  style={{
-                    backgroundColor: isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.9)',
-                    paddingHorizontal: 24,
-                    paddingVertical: 12,
-                    borderRadius: 20,
-                    borderWidth: 1,
-                    borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
-                    shadowColor: '#000000',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.2,
-                    shadowRadius: 8,
-                    elevation: 8,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: isDarkMode ? '#ffffff' : '#000000',
-                      fontSize: 16,
-                      fontWeight: '500',
-                      textAlign: 'center',
-                      fontFamily: 'Roboto-Medium',
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    Tap to Continue
-                  </Text>
-                </View>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      </SafeAreaProvider>
-    );
-  }
 
   if (error) {
     return (
@@ -435,7 +391,7 @@ function App() {
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: isDarkMode ? '#0b1220' : '#f9fafb',
+            backgroundColor: systemIsDark ? '#0b1220' : '#f9fafb',
             paddingHorizontal: 20,
           }}
         >
@@ -452,13 +408,13 @@ function App() {
           <MaterialCommunityIcons
             name="alert-circle"
             size={32}
-            color={isDarkMode ? '#ef4444' : '#dc2626'}
+            color={systemIsDark ? '#ef4444' : '#dc2626'}
             style={{ marginTop: -16 }}
           />
           <Text
             style={{
               fontSize: 18,
-              color: isDarkMode ? '#ef4444' : '#dc2626',
+              color: systemIsDark ? '#ef4444' : '#dc2626',
               textAlign: 'center',
               marginTop: 16,
               fontWeight: '600',
@@ -470,7 +426,7 @@ function App() {
             style={{
               marginTop: 16,
               fontSize: 14,
-              color: isDarkMode ? '#94a3b8' : '#6b7280',
+              color: systemIsDark ? '#94a3b8' : '#6b7280',
               textAlign: 'center',
               lineHeight: 20,
             }}
@@ -595,9 +551,29 @@ function App() {
     );
   };
 
+  // Show launch screen during loading or when requested
+  if (isLoading || showLaunchScreen) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar barStyle={systemIsDark ? 'light-content' : 'dark-content'} />
+        <SettingsProvider>
+          <LaunchScreen 
+            progress={progress} 
+            onPress={() => {
+              if (progress >= 100) {
+                setShowLaunchScreen(false);
+                setIsLoading(false);
+              }
+            }} 
+          />
+        </SettingsProvider>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle={systemIsDark ? 'light-content' : 'dark-content'} />
       <SettingsProvider>
         <ThemedNav />
       </SettingsProvider>
