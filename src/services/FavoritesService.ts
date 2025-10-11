@@ -92,6 +92,12 @@ class FavoritesService {
    * Unpin a kalaam
    */
   static async unpinKalaam(kalaamId: number): Promise<void> {
+    // Prevent unpinning special content (Hadees e Kisa, Ziyarat Ashura)
+    if (kalaamId < 0) {
+      console.log('[FavoritesService] Cannot unpin special content');
+      return;
+    }
+    
     const pins = await this.getPinsList();
     const index = pins.indexOf(kalaamId);
     if (index !== -1) {

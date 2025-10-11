@@ -100,6 +100,21 @@ class Database {
           VALUES (-1, datetime('now')), (-2, datetime('now'))
         `);
 
+        // Create pins table if it doesn't exist
+        await this.db.executeSql(`
+          CREATE TABLE IF NOT EXISTS pins (
+            kalaam_id INTEGER PRIMARY KEY,
+            created_at DATETIME
+          )
+        `);
+
+        // Auto-pin special content (Hadees e Kisa, Ziyarat Ashura)
+        // These IDs are negative and permanently pinned
+        await this.db.executeSql(`
+          INSERT OR IGNORE INTO pins (kalaam_id, created_at)
+          VALUES (-1, datetime('now')), (-2, datetime('now'))
+        `);
+
         // Update kalaam table to include new fields if they don't exist
         await this.db.executeSql(`
           ALTER TABLE kalaam ADD COLUMN last_modified TIMESTAMP
