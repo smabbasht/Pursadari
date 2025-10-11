@@ -13,14 +13,14 @@ import {
   Dimensions,
   Share,
 } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { RouteProp } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { WebView } from 'react-native-webview';
 import { useSettings, useThemeTokens } from '../context/SettingsContext';
 
-import { databaseService } from '../database/DatabaseFactory';
+import database from '../database/Database';
 import FavoritesService from '../services/FavoritesService';
 import { RootStackParamList, Kalaam } from '../types';
 import AppHeader from '../components/AppHeader';
@@ -53,13 +53,14 @@ function extractYouTubeVideoId(url?: string): string | null {
 }
 
 function createYouTubeEmbedUrl(videoId: string): string {
-  return `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=0&controls=1&showinfo=0&fs=1&cc_load_policy=0&iv_load_policy=3&autohide=0&enablejsapi=1&origin=${encodeURIComponent('https://www.youtube.com')}`;
+  return `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=0&controls=1&showinfo=0&fs=1&cc_load_policy=0&iv_load_policy=3&autohide=0&enablejsapi=1&playsinline=1&origin=${encodeURIComponent('https://www.youtube.com')}&widget_referrer=${encodeURIComponent('https://www.youtube.com')}`;
 }
 
 export default function KalaamScreen() {
   const insets = useSafeAreaInsets();
   const t = useThemeTokens();
   const { accentColor } = useSettings();
+  const navigation = useNavigation();
 
   const route = useRoute<KalaamRoute>();
   const { id } = route.params;
@@ -88,8 +89,8 @@ export default function KalaamScreen() {
   const load = async () => {
     try {
       setIsLoading(true);
-      await databaseService.init();
-      const data = await databaseService.getKalaamById(id);
+      await database.init();
+      const data = await database.getKalaamById(id);
       setKalaam(data);
       const fav = await FavoritesService.isFavorite(id);
       setIsFavourite(fav);
@@ -135,6 +136,24 @@ export default function KalaamScreen() {
     }
   };
 
+  const navigateToReciter = () => {
+    if (kalaam?.reciter) {
+      navigation.navigate('Reciter', { reciter: kalaam.reciter });
+    }
+  };
+
+  const navigateToPoet = () => {
+    if (kalaam?.poet) {
+      navigation.navigate('Poet', { poet: kalaam.poet });
+    }
+  };
+
+  const navigateToMasaib = () => {
+    if (kalaam?.masaib) {
+      navigation.navigate('Masaib', { masaib: kalaam.masaib });
+    }
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
@@ -172,23 +191,38 @@ export default function KalaamScreen() {
       >
         <View style={[styles.card, styles.maxWidth, { backgroundColor: t.surface }]}>
           <Text style={[styles.title, { color: t.textPrimary }]}>{kalaam.title}</Text>
-          <TouchableOpacity style={[styles.favButton, { backgroundColor: t.divider }]} onPress={toggleFavourite}>
-            <MaterialCommunityIcons
-              name={isFavourite ? 'heart' : 'heart-outline'}
-              size={20}
-              color={isFavourite ? t.danger : t.textMuted}
-            />
-            <Text style={[styles.favButtonText, { color: t.textSecondary }]}>
-              {isFavourite ? 'Remove from Favourites' : 'Add to Favourites'}
-            </Text>
-          </TouchableOpacity>
+          {/* Hide favorite button for special content (Hadees e Kisa, Ziyarat Ashura) */}
+          {kalaam.id >= 0 && (
+            <TouchableOpacity style={[styles.favButton, { backgroundColor: t.divider }]} onPress={toggleFavourite}>
+              <MaterialCommunityIcons
+                name={isFavourite ? 'heart' : 'heart-outline'}
+                size={20}
+                color={isFavourite ? t.danger : t.textMuted}
+              />
+              <Text style={[styles.favButtonText, { color: t.textSecondary }]}>
+                {isFavourite ? 'Remove from Favourites' : 'Add to Favourites'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        <View style={[styles.card, styles.maxWidth, { backgroundColor: t.surface }]}>
-          <View style={styles.metaColumn}>
-            <View style={styles.metaRowLine}>
+        {/* Hide metadata for special content (Hadees e Kisa, Ziyarat Ashura) */}
+        {kalaam.id >= 0 && (
+          <View style={[styles.card, styles.maxWidth, { backgroundColor: t.surface }]}>
+            <View style={styles.metaColumn}>
+            <TouchableOpacity 
+              style={styles.metaRowLine} 
+              onPress={navigateToReciter}
+              disabled={!kalaam.reciter}
+            >
               <Text style={[styles.metaLabel, { color: t.textSecondary }]}>Reciter:</Text>
-              <View style={[styles.metaChipFull, { backgroundColor: t.divider }]}>
+              <View style={[
+                styles.metaChipFull, 
+                { 
+                  backgroundColor: kalaam.reciter ? t.divider : t.border,
+                  opacity: kalaam.reciter ? 1 : 0.5
+                }
+              ]}>
                 <MaterialCommunityIcons
                   name="account-music"
                   size={16}
@@ -196,10 +230,20 @@ export default function KalaamScreen() {
                 />
                 <Text style={[styles.metaText, { color: t.textSecondary }]}>{kalaam.reciter || 'N/A'}</Text>
               </View>
-            </View>
-            <View style={styles.metaRowLine}>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.metaRowLine} 
+              onPress={navigateToPoet}
+              disabled={!kalaam.poet}
+            >
               <Text style={[styles.metaLabel, { color: t.textSecondary }]}>Poet:</Text>
-              <View style={[styles.metaChipFull, { backgroundColor: t.divider }]}>
+              <View style={[
+                styles.metaChipFull, 
+                { 
+                  backgroundColor: kalaam.poet ? t.divider : t.border,
+                  opacity: kalaam.poet ? 1 : 0.5
+                }
+              ]}>
                 <MaterialCommunityIcons
                   name="feather"
                   size={16}
@@ -207,10 +251,20 @@ export default function KalaamScreen() {
                 />
                 <Text style={[styles.metaText, { color: t.textSecondary }]}>{kalaam.poet || 'N/A'}</Text>
               </View>
-            </View>
-            <View style={styles.metaRowLine}>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.metaRowLine} 
+              onPress={navigateToMasaib}
+              disabled={!kalaam.masaib}
+            >
               <Text style={[styles.metaLabel, { color: t.textSecondary }]}>Masaib:</Text>
-              <View style={[styles.metaChipFull, { backgroundColor: t.divider }]}>
+              <View style={[
+                styles.metaChipFull, 
+                { 
+                  backgroundColor: kalaam.masaib ? t.divider : t.border,
+                  opacity: kalaam.masaib ? 1 : 0.5
+                }
+              ]}>
                 <MaterialCommunityIcons
                   name="book-open-variant"
                   size={16}
@@ -218,9 +272,10 @@ export default function KalaamScreen() {
                 />
                 <Text style={[styles.metaText, { color: t.textSecondary }]}>{kalaam.masaib || 'N/A'}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
+        )}
 
         {kalaam.yt_link ? (
           <View style={[styles.card, styles.maxWidth, { overflow: 'hidden', backgroundColor: t.surface }]}>
@@ -265,17 +320,47 @@ export default function KalaamScreen() {
                     scalesPageToFit={false}
                     mixedContentMode="compatibility"
                     originWhitelist={['*']}
+                    thirdPartyCookiesEnabled={false}
+                    sharedCookiesEnabled={false}
+                    userAgent="Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
                     onError={(syntheticEvent) => {
                       console.warn('WebView error:', syntheticEvent.nativeEvent);
+                      // Handle 153 error specifically
+                      if (syntheticEvent.nativeEvent.code === 153) {
+                        console.log('YouTube video unavailable or restricted - trying alternative approach');
+                      }
                     }}
                     onHttpError={(syntheticEvent) => {
                       console.warn('WebView HTTP error:', syntheticEvent.nativeEvent);
+                      if (syntheticEvent.nativeEvent.statusCode === 403) {
+                        console.log('YouTube access forbidden - video may be restricted');
+                      }
                     }}
                     onLoadEnd={() => {
                       console.log('YouTube WebView loaded successfully');
                     }}
                     onLoadStart={() => {
                       console.log('Loading YouTube WebView...');
+                    }}
+                    onMessage={(event) => {
+                      try {
+                        const message = JSON.parse(event.nativeEvent.data);
+                        if (message.type === 'youtube_error') {
+                          console.log('YouTube player error:', message.error);
+                        }
+                      } catch (e) {
+                        // Ignore non-JSON messages
+                      }
+                    }}
+                    renderError={(errorDomain, errorCode, errorDesc) => {
+                      console.log('WebView render error:', errorDomain, errorCode, errorDesc);
+                      return (
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
+                          <Text style={{ color: '#fff', textAlign: 'center', padding: 20 }}>
+                            Video unavailable. Error: {errorDesc}
+                          </Text>
+                        </View>
+                      );
                     }}
                   />
                 );
@@ -301,7 +386,7 @@ export default function KalaamScreen() {
                     language === 'english' && { color: t.accentOnAccent },
                   ]}
                 >
-                  English
+                  {kalaam.id < 0 ? 'Transliteration' : 'English'}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -318,7 +403,7 @@ export default function KalaamScreen() {
                     language === 'urdu' && { color: t.accentOnAccent },
                   ]}
                 >
-                  اردو
+                  {kalaam.id < 0 ? 'Arabic' : 'اردو'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -427,9 +512,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f3f4f6',
-    borderRadius: 9999,
+    borderRadius: 16,
     paddingHorizontal: 10,
     paddingVertical: 4,
+    overflow: 'hidden',
   },
   metaText: { marginLeft: 6, color: '#374151' },
   flatSection: {
@@ -441,15 +527,17 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     backgroundColor: '#f3f4f6',
-    borderRadius: 9999,
+    borderRadius: 20,
     padding: 3,
+    overflow: 'hidden',
   },
   languageButton: {
     minWidth: 90,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 9999,
+    borderRadius: 16,
     alignItems: 'center',
+    overflow: 'hidden',
   },
   languageButtonActive: { backgroundColor: '#16a34a' },
   languageButtonText: { fontSize: 13, fontWeight: '700', color: '#6b7280' },

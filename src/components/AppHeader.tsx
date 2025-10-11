@@ -1,9 +1,20 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
-import { useThemeTokens } from '../context/SettingsContext';
+import { View, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { useThemeTokens, useSettings } from '../context/SettingsContext';
 
-export default function AppHeader() {
+interface AppHeaderProps {
+  onPress?: () => void;
+}
+
+export default function AppHeader({ onPress }: AppHeaderProps) {
   const t = useThemeTokens();
+  const { theme } = useSettings();
+  
+  // Choose the appropriate icon based on theme
+  const iconSource = theme === 'dark' 
+    ? require('../../assets/pursadari-dark.png')
+    : require('../../assets/pursadari-light.png');
+  
   return (
     <View
       style={[
@@ -11,15 +22,18 @@ export default function AppHeader() {
         { backgroundColor: t.surface, borderBottomColor: t.border },
       ]}
     >
-      <View style={styles.innerRow}>
+      <TouchableOpacity 
+        style={styles.innerRow}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
         <View style={styles.logoWrap}>
           <Image
-            source={require('../../assets/favicon.png')}
+            source={iconSource}
             style={styles.logo}
           />
         </View>
-        <Text style={[styles.title, { color: t.textPrimary }]}>Pursadari</Text>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -32,26 +46,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   logoWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 120,
+    height: 60,
+    borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
     elevation: 0,
   },
   logo: {
-    width: 34,
-    height: 34,
-    resizeMode: 'contain',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
+    width: 120,
+    height: 60,
+    resizeMode: 'cover',
   },
 });

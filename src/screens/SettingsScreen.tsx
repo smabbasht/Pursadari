@@ -1,6 +1,6 @@
 // SettingsScreen.tsx
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,15 +11,21 @@ import {
   Modal,
   Platform,
   ScrollView,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Picker } from '@react-native-picker/picker';
 import Slider from '@react-native-community/slider';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import AppHeader from '../components/AppHeader';
 import { useSettings, useThemeTokens } from '../context/SettingsContext';
+import FontManager from '../utils/FontManager';
+import { foregroundSyncManager } from '../services/ForegroundSyncManager';
+import { syncManager } from '../services/SyncManager';
+import { SyncResult } from '../types';
+import database from '../database/Database';
 
 const EN_PREVIEW = 'Aao ro lein Shah-e-Karbala ko';
-const UR_PREVIEW = 'آؤ رو لیں شاہِ کربلا کو';
+const UR_PREVIEW = 'آؤ رو لیں شہِ کربلا کو';
 
 // Curated color palette as requested
 const PALETTE = [
@@ -29,31 +35,15 @@ const PALETTE = [
   '#16a34a', // Green
   '#f59e0b', // Mustardish Yellow
   '#ef4444', // Red
-  '#a16207', // Brown
+  // '#a16207', // Brown
   '#6b7280', // Grey
+  '#000000', // Black
+  // '#a16207', // Brown
   // '#d97706', // Mustard
   // '#eab308', // Yellow
 ];
 
-const EN_FONTS = [
-  { label: 'System', value: 'System' },
-  { label: 'Inter', value: 'Inter' },
-  { label: 'Roboto', value: 'Roboto' },
-  { label: 'Open Sans', value: 'Open Sans' },
-  { label: 'Lato', value: 'Lato' },
-  { label: 'Poppins', value: 'Poppins' },
-  { label: 'Nunito', value: 'Nunito' },
-  { label: 'Source Sans Pro', value: 'Source Sans Pro' },
-];
-
-const UR_FONTS = [
-  { label: 'System', value: 'System' },
-  { label: 'Noto Nastaliq Urdu', value: 'Noto Nastaliq Urdu' },
-  { label: 'Jameel Noori Nastaleeq', value: 'Jameel Noori Nastaleeq' },
-  { label: 'Mehr Nastaliq Web', value: 'Mehr Nastaliq Web' },
-  { label: 'Al Qalam Taj Nastaleeq', value: 'Al Qalam Taj Nastaleeq' },
-  { label: 'Pak Nastaleeq', value: 'Pak Nastaleeq' },
-];
+// Font options will be loaded dynamically from FontManager
 
 export default function SettingsScreen() {
   // Pull from settings if available; otherwise use local safe defaults.
@@ -67,12 +57,36 @@ export default function SettingsScreen() {
     settings.accentColor ?? '#16a34a',
   );
 
+  // Font options from FontManager
+  const [fontOptions, setFontOptions] = useState<{
+    urdu: Array<{ label: string; value: string }>;
+    english: Array<{ label: string; value: string }>;
+  }>({ urdu: [{ label: 'System Default', value: 'System' }], english: [{ label: 'System Default', value: 'System' }] });
+
   const [engFont, setEngFont] = useState<string>(
-    settings.engFont ?? EN_FONTS[0].value,
+    settings.engFont ?? 'System',
   );
   const [urduFont, setUrduFont] = useState<string>(
-    settings.urduFont ?? UR_FONTS[0].value,
+    settings.urduFont ?? 'System',
   );
+
+  // Initialize FontManager and load font options
+  useEffect(() => {
+    const initializeFonts = async () => {
+      await FontManager.initialize();
+      const options = FontManager.getFontOptions();
+      setFontOptions(options);
+      
+      // Set safe fallback fonts if current fonts are not available
+      const safeEngFont = FontManager.getSafeFontFamily(settings.engFont ?? 'System', false);
+      const safeUrduFont = FontManager.getSafeFontFamily(settings.urduFont ?? 'System', true);
+      
+      if (safeEngFont !== engFont) setEngFont(safeEngFont);
+      if (safeUrduFont !== urduFont) setUrduFont(safeUrduFont);
+    };
+    
+    initializeFonts();
+  }, []);
 
   const [engScale, setEngScale] = useState<number>(
     settings.engFontScale ?? 1.0,
@@ -81,7 +95,59 @@ export default function SettingsScreen() {
     settings.urduFontScale ?? 1.2,
   );
 
+  // Sync-related state
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncStatus, setSyncStatus] = useState<string>('');
+  const [lastSyncTime, setLastSyncTime] = useState<string>('');
+  const [remainingSyncs, setRemainingSyncs] = useState<number>(2);
+
+  // Font dropdown states
+  const [showEngFontDropdown, setShowEngFontDropdown] = useState(false);
+  const [showUrduFontDropdown, setShowUrduFontDropdown] = useState(false);
+
   const isDark = theme === 'dark';
+
+  // Load sync status on component mount
+  useEffect(() => {
+    loadSyncStatus();
+  }, []);
+
+  const loadSyncStatus = async () => {
+    try {
+      const status = await syncManager.getSyncStatus();
+      setLastSyncTime(new Date(status.lastSync).toLocaleString());
+      setSyncStatus(`Records: ${status.recordCount} | Online: ${status.isOnline ? 'Yes' : 'No'}`);
+      setRemainingSyncs(2 - status.dailyAttempts);
+    } catch (error) {
+      console.error('Failed to load sync status:', error);
+      setSyncStatus('Failed to load status');
+    }
+  };
+
+  const handleManualSync = async () => {
+    if (isSyncing) return;
+    
+    setIsSyncing(true);
+    setSyncStatus('Syncing...');
+    
+    try {
+      const result: SyncResult = await foregroundSyncManager.performManualSync();
+      
+      if (result.success) {
+        setSyncStatus(`Synced ${result.recordsProcessed} records (${result.activeRecords} new, ${result.deletedRecords} deleted)`);
+        setLastSyncTime(new Date().toLocaleString());
+        // Refresh sync status to update remaining syncs
+        await loadSyncStatus();
+      } else {
+        setSyncStatus(`Sync failed: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Manual sync failed:', error);
+      setSyncStatus(`Sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // If context provides setters, mirror changes back out
   const applyTheme = (t: 'light' | 'dark') => {
@@ -196,28 +262,29 @@ export default function SettingsScreen() {
           </Text>
 
           <Text style={[styles.label, { color: t.textSecondary }]}>Font</Text>
-          <View
+          <TouchableOpacity
             style={[
               styles.pickerWrap,
-              { borderColor: t.border, backgroundColor: t.surface },
+              { 
+                borderColor: t.border, 
+                backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                borderWidth: 1,
+                borderRadius: 12,
+                marginTop: 8,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              },
             ]}
+            onPress={() => setShowEngFontDropdown(true)}
           >
-            <Picker
-              selectedValue={engFont}
-              onValueChange={applyEngFont}
-              dropdownIconColor={t.textMuted}
-              style={[styles.picker, { color: t.textPrimary }]}
-            >
-              {EN_FONTS.map(f => (
-                <Picker.Item
-                  key={f.value}
-                  label={f.label}
-                  value={f.value}
-                  color={t.textPrimary}
-                />
-              ))}
-            </Picker>
-          </View>
+            <Text style={[styles.pickerText, { color: t.textPrimary }]}>
+              {fontOptions.english.find(f => f.value === engFont)?.label || 'Select Font'}
+            </Text>
+            <MaterialCommunityIcons name="chevron-down" size={24} color={t.textMuted} />
+          </TouchableOpacity>
 
           <View style={styles.sliderRow}>
             <Text style={[styles.label, { color: t.textSecondary }]}>
@@ -246,7 +313,13 @@ export default function SettingsScreen() {
           <View
             style={[
               styles.previewCard,
-              { backgroundColor: t.surface, borderColor: t.border },
+              { 
+                backgroundColor: t.surface, 
+                borderColor: t.border,
+                padding: 16,
+                borderRadius: 12,
+                borderWidth: 1,
+              },
             ]}
           >
             <Text
@@ -254,44 +327,49 @@ export default function SettingsScreen() {
                 fontSize: 16 * engScale,
                 color: t.textPrimary,
                 fontFamily: engFont === 'System' ? undefined : engFont,
+                lineHeight: 24 * engScale,
               }}
             >
               {EN_PREVIEW}
+            </Text>
+            <Text style={[styles.fontName, { color: t.textMuted }]}>
+              {fontOptions.english.find(f => f.value === engFont)?.label || 'Unknown Font'}
             </Text>
           </View>
         </View>
 
         {/* Urdu Typography */}
         <View
-          style={[styles.section, styles.card, { backgroundColor: t.surface }]}
+          style={[styles.section, styles.card, { backgroundColor: t.surface, marginBottom: 20 }]}
         >
           <Text style={[styles.sectionTitle, { color: t.textPrimary }]}>
             Urdu Typography
           </Text>
 
           <Text style={[styles.label, { color: t.textSecondary }]}>Font</Text>
-          <View
+          <TouchableOpacity
             style={[
               styles.pickerWrap,
-              { borderColor: t.border, backgroundColor: t.surface },
+              { 
+                borderColor: t.border, 
+                backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                borderWidth: 1,
+                borderRadius: 12,
+                marginTop: 8,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              },
             ]}
+            onPress={() => setShowUrduFontDropdown(true)}
           >
-            <Picker
-              selectedValue={urduFont}
-              onValueChange={applyUrduFont}
-              dropdownIconColor={t.textMuted}
-              style={[styles.picker, { color: t.textPrimary }]}
-            >
-              {UR_FONTS.map(f => (
-                <Picker.Item
-                  key={f.value}
-                  label={f.label}
-                  value={f.value}
-                  color={t.textPrimary}
-                />
-              ))}
-            </Picker>
-          </View>
+            <Text style={[styles.pickerText, { color: t.textPrimary }]}>
+              {fontOptions.urdu.find(f => f.value === urduFont)?.label || 'Select Font'}
+            </Text>
+            <MaterialCommunityIcons name="chevron-down" size={24} color={t.textMuted} />
+          </TouchableOpacity>
 
           <View style={styles.sliderRow}>
             <Text style={[styles.label, { color: t.textSecondary }]}>
@@ -324,6 +402,9 @@ export default function SettingsScreen() {
                 alignItems: 'flex-end',
                 backgroundColor: t.surface,
                 borderColor: t.border,
+                padding: 16,
+                borderRadius: 12,
+                borderWidth: 1,
               },
             ]}
           >
@@ -334,11 +415,74 @@ export default function SettingsScreen() {
                 writingDirection: 'rtl',
                 textAlign: 'right',
                 fontFamily: urduFont === 'System' ? undefined : urduFont,
+                lineHeight: 32 * urduScale,
+                marginBottom: 16,
+                paddingBottom: 8,
               }}
             >
               {UR_PREVIEW}
             </Text>
+            <Text style={[styles.fontName, { color: t.textMuted, textAlign: 'right' }]}>
+              {fontOptions.urdu.find(f => f.value === urduFont)?.label || 'Unknown Font'}
+            </Text>
           </View>
+        </View>
+
+        {/* Data Sync */}
+        <View
+          style={[styles.section, styles.card, { backgroundColor: t.surface, marginBottom: 20 }]}
+        >
+          <Text style={[styles.sectionTitle, { color: t.textPrimary }]}>
+            Data Sync (Daily)
+          </Text>
+
+          <View style={styles.syncStatusContainer}>
+            <View style={styles.syncStatusRow}>
+              <Text style={[styles.syncLabel, { color: t.textSecondary }]}>
+                Status
+              </Text>
+              <Text style={[styles.syncStatusText, { color: t.textMuted }]}>
+                {syncStatus}
+              </Text>
+            </View>
+
+            {lastSyncTime && (
+              <View style={styles.syncStatusRow}>
+                <Text style={[styles.syncLabel, { color: t.textSecondary }]}>
+                  Last Sync
+                </Text>
+                <Text style={[styles.syncTimeText, { color: t.textMuted }]}>
+                  {lastSyncTime}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.syncButton,
+              {
+                backgroundColor: isSyncing ? t.border : accentColor,
+                opacity: isSyncing ? 0.6 : 1,
+                shadowColor: accentColor,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.2,
+                shadowRadius: 4,
+                elevation: 3,
+              },
+            ]}
+            onPress={handleManualSync}
+            disabled={isSyncing}
+          >
+            <Text
+              style={[
+                styles.syncButtonText,
+                { color: isSyncing ? t.textMuted : t.accentOnAccent },
+              ]}
+            >
+              {isSyncing ? 'Syncing...' : 'Sync Now'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -431,6 +575,112 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* English Font Dropdown Modal */}
+      <Modal
+        visible={showEngFontDropdown}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowEngFontDropdown(false)}
+      >
+        <View style={[styles.modalBackdrop, { backgroundColor: t.modalBackdrop }]}>
+          <View style={[styles.fontModalContent, { backgroundColor: t.surface, borderColor: t.border }]}>
+            <View style={[styles.fontModalHeader, { borderBottomColor: t.divider }]}>
+              <Text style={[styles.modalTitle, { color: t.textPrimary }]}>Select English Font</Text>
+              <TouchableOpacity onPress={() => setShowEngFontDropdown(false)}>
+                <MaterialCommunityIcons name="close" size={24} color={t.textMuted} />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={fontOptions.english}
+              keyExtractor={(item) => item.value}
+              style={styles.fontDropdownList}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.fontDropdownItem, 
+                    { 
+                      borderBottomColor: t.divider,
+                      backgroundColor: engFont === item.value ? accentColor + '20' : 'transparent'
+                    }
+                  ]}
+                  onPress={() => {
+                    applyEngFont(item.value);
+                    setShowEngFontDropdown(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.fontDropdownItemText, 
+                    { 
+                      color: engFont === item.value ? accentColor : t.textPrimary,
+                      fontWeight: engFont === item.value ? '600' : '400',
+                      fontFamily: item.value === 'System' ? undefined : item.value
+                    }
+                  ]}>{item.label}</Text>
+                  {engFont === item.value && (
+                    <MaterialCommunityIcons name="check" size={20} color={accentColor} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Urdu Font Dropdown Modal */}
+      <Modal
+        visible={showUrduFontDropdown}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowUrduFontDropdown(false)}
+      >
+        <View style={[styles.modalBackdrop, { backgroundColor: t.modalBackdrop }]}>
+          <View style={[styles.fontModalContent, { backgroundColor: t.surface, borderColor: t.border }]}>
+            <View style={[styles.fontModalHeader, { borderBottomColor: t.divider }]}>
+              <Text style={[styles.modalTitle, { color: t.textPrimary }]}>Select Urdu Font</Text>
+              <TouchableOpacity onPress={() => setShowUrduFontDropdown(false)}>
+                <MaterialCommunityIcons name="close" size={24} color={t.textMuted} />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={fontOptions.urdu}
+              keyExtractor={(item) => item.value}
+              style={styles.fontDropdownList}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.fontDropdownItem, 
+                    { 
+                      borderBottomColor: t.divider,
+                      backgroundColor: urduFont === item.value ? accentColor + '20' : 'transparent'
+                    }
+                  ]}
+                  onPress={() => {
+                    applyUrduFont(item.value);
+                    setShowUrduFontDropdown(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.fontDropdownItemText, 
+                    { 
+                      color: urduFont === item.value ? accentColor : t.textPrimary,
+                      fontWeight: urduFont === item.value ? '600' : '400',
+                      fontFamily: item.value === 'System' ? undefined : item.value,
+                      writingDirection: 'rtl',
+                      textAlign: 'right'
+                    }
+                  ]}>{item.label}</Text>
+                  {urduFont === item.value && (
+                    <MaterialCommunityIcons name="check" size={20} color={accentColor} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -442,16 +692,16 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1, paddingBottom: 20 },
 
   card: {
-    borderRadius: 12,
+    borderRadius: 16,
     marginHorizontal: 16,
     marginTop: 12,
-    padding: 16,
+    padding: 20,
     // subtle shadow
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   section: {},
   sectionTitle: {
@@ -476,6 +726,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
+    overflow: 'hidden',
   },
   customBtn: {
     borderWidth: 2,
@@ -487,13 +738,50 @@ const styles = StyleSheet.create({
 
   // Pickers
   pickerWrap: {
-    borderWidth: 1,
-    borderRadius: 10,
     overflow: 'hidden',
-    marginTop: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   picker: {
-    height: Platform.OS === 'ios' ? 180 : 44,
+    height: Platform.OS === 'ios' ? 200 : 50,
+    fontSize: 16,
+  },
+  pickerText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+
+  // Font Dropdown Modals
+  fontModalContent: {
+    width: '85%',
+    maxHeight: '70%',
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  fontModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  fontDropdownList: {
+    maxHeight: 400,
+  },
+  fontDropdownItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  fontDropdownItemText: {
+    fontSize: 16,
+    flex: 1,
   },
 
   // Sliders
@@ -519,6 +807,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
   },
+  fontName: {
+    fontSize: 12,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
 
   /* Modal */
   modalBackdrop: {
@@ -541,6 +834,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     marginRight: 6,
     marginTop: 10,
+    overflow: 'hidden',
   },
 
   hexRow: { marginTop: 12 },
@@ -561,6 +855,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 1,
+    overflow: 'hidden',
   },
 
   modalBtns: {
@@ -572,4 +867,42 @@ const styles = StyleSheet.create({
   btn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 },
   btnGhost: {},
   btnText: { fontWeight: '700' },
+  
+  // Sync styles
+  syncStatusContainer: {
+    marginBottom: 16,
+  },
+  syncStatusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  syncLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  syncStatusText: {
+    fontSize: 12,
+    textAlign: 'right',
+    flex: 1,
+    marginLeft: 16,
+  },
+  syncTimeText: {
+    fontSize: 12,
+    textAlign: 'right',
+    flex: 1,
+    marginLeft: 16,
+  },
+  syncButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  syncButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });

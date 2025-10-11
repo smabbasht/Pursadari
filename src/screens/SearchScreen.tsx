@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import databaseService from '../database/DatabaseFactory';
+import database from '../database/Database';
 import { Kalaam, RootStackParamList } from '../types';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -107,7 +107,7 @@ export default function SearchScreen() {
     const myReq = ++reqIdRef.current;
     setLoading(true);
     try {
-      const res = await databaseService.searchKalaams(qTrim, 1, 100);
+      const res = await database.searchKalaams(qTrim, 1, 100);
       if (reqIdRef.current === myReq) setResults(res.kalaams);
     } catch (e) {
       // swallow or log; keep UI stable
@@ -121,7 +121,7 @@ export default function SearchScreen() {
   const onChange = (text: string) => {
     setQuery(text);
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => runSearch(text), 200);
+    timerRef.current = setTimeout(() => runSearch(text), 250);
   };
 
   const onSearchPress = () => {

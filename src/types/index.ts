@@ -9,6 +9,8 @@ export interface Kalaam {
   yt_link: string;
   source_url: string;
   fetched_at: string;
+  last_modified?: string;
+  deleted?: boolean;
 }
 
 export interface MasaibGroup {
@@ -53,3 +55,28 @@ export type TabParamList = {
   Favourites: undefined;
   Settings: undefined;
 };
+
+// Sync-related interfaces
+export interface SyncResult {
+  success: boolean;
+  recordsProcessed: number;
+  activeRecords: number;
+  deletedRecords: number;
+  error?: string;
+}
+
+export interface SyncConfig {
+  backgroundSyncInterval: number; // minutes
+  foregroundSyncOnAppOpen: boolean;
+  wifiOnlySync: boolean;
+  maxRetryAttempts: number;
+  batchSize: number;
+}
+
+export interface SyncEvent {
+  type: 'background' | 'foreground' | 'manual';
+  recordsProcessed: number;
+  duration: number;
+  success: boolean;
+  error?: string;
+}

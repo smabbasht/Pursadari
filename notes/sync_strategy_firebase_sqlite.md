@@ -60,7 +60,9 @@ enableHeadless: true     // Run without UI
    ```typescript
    - Get last_source_sync_timestamp from SQLite
    - Query Firebase for records newer than timestamp
-   - Batch process new records into SQLite
+   - Filter out records with deleted = true (soft delete)
+   - Batch process new/updated records into SQLite
+   - Handle deletions by removing from local database
    - Update sync timestamp
    ```
 
@@ -68,6 +70,8 @@ enableHeadless: true     // Run without UI
    - Network failures: Silent retry on next sync
    - Partial sync: Transaction-based updates
    - Data conflicts: Firebase data is source of truth
+   - Soft delete handling: Records marked as deleted are filtered out
+   - Consistency checks: Validate record counts after sync
 
 ## Android-Specific Considerations
 

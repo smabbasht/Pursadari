@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "655661008468",
+    "project_id": "bayaaz-9057b",
+    "storage_bucket": "bayaaz-9057b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:655661008468:android:e7067c272dc9f2d1dfcfc1",
+        "android_client_info": {
+          "package_name": "com.bayaaz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDm9tJ1mXHOE6aH3ZawbDVeZRmHH1vdoAA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+

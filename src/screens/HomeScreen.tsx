@@ -22,7 +22,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import AppHeader from '../components/AppHeader';
 import { useThemeTokens, useSettings } from '../context/SettingsContext';
-import databaseService from '../database/DatabaseFactory';
+import database from '../database/Database';
 import {
   RootStackParamList,
   MasaibGroup,
@@ -89,20 +89,15 @@ function Ring({
 function PressableCard({
   children,
   onPress,
-  disabled,
 }: {
   children: React.ReactNode;
   onPress: () => void;
-  disabled?: boolean;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
   return (
-    <Animated.View
-      style={{ transform: [{ scale }], opacity: disabled ? 0.6 : 1 }}
-    >
+    <Animated.View style={{ transform: [{ scale }] }}>
       <TouchableOpacity
         activeOpacity={0.8}
-        disabled={disabled}
         onPressIn={() =>
           Animated.spring(scale, {
             toValue: 0.98,
@@ -139,7 +134,6 @@ export default function HomeScreen() {
     null,
   );
   const [initLoading, setInitLoading] = useState(true);
-  const [navigating, setNavigating] = useState(false);
 
   // Swipe gesture state
   const tabAnimation = useRef(new Animated.Value(0)).current;
@@ -195,12 +189,12 @@ export default function HomeScreen() {
       setInitLoading(true);
       try {
         // Ensure database is initialized
-        await databaseService.init();
+        await database.init();
         
         const [m, p, r] = await Promise.all([
-          databaseService.getMasaibGroups(),
-          databaseService.getPoetGroups(),
-          databaseService.getReciterGroups(),
+          database.getMasaibGroups(),
+          database.getPoetGroups(),
+          database.getReciterGroups(),
         ]);
         setMasaibGroups(m);
         setPoetGroups(p);
@@ -238,23 +232,21 @@ export default function HomeScreen() {
   };
 
   const goToItem = (item: MasaibGroup | PoetGroup | ReciterGroup) => {
-    setNavigating(true);
-    try {
-      if (browseCategory === 'masaib') {
-        navigation.navigate('Masaib', { masaib: (item as MasaibGroup).masaib });
-      } else if (browseCategory === 'poet') {
-        navigation.navigate('Poet', { poet: (item as PoetGroup).poet });
-      } else {
-        navigation.navigate('Reciter', {
-          reciter: (item as ReciterGroup).reciter,
-        });
-      }
-      if (searchOpen) {
-        setSearchQuery('');
-        toggleSearch(false);
-      }
-    } finally {
-      setTimeout(() => setNavigating(false), 250);
+    // Instant navigation - don't wait for anything
+    if (browseCategory === 'masaib') {
+      navigation.navigate('Masaib', { masaib: (item as MasaibGroup).masaib });
+    } else if (browseCategory === 'poet') {
+      navigation.navigate('Poet', { poet: (item as PoetGroup).poet });
+    } else {
+      navigation.navigate('Reciter', {
+        reciter: (item as ReciterGroup).reciter,
+      });
+    }
+    
+    // Close search if open
+    if (searchOpen) {
+      setSearchQuery('');
+      toggleSearch(false);
     }
   };
 
@@ -300,7 +292,7 @@ export default function HomeScreen() {
   };
 
   const renderItem = ({ item }: { item: any }) => (
-    <PressableCard onPress={() => goToItem(item)} disabled={navigating}>
+    <PressableCard onPress={() => goToItem(item)}>
       <View style={[styles.listItem, { backgroundColor: t.surface }]}>
         <View style={[styles.itemIconWrap, { backgroundColor: t.accentSubtle }]}>
           <MaterialCommunityIcons
@@ -522,11 +514,6 @@ export default function HomeScreen() {
         </PanGestureHandler>
       </View>
 
-      {navigating && (
-        <View style={styles.blockOverlay}>
-          <Ring size={40} color={accentColor} />
-        </View>
-      )}
 
       {/* ---------- Floating Search (keyboard-aware) ---------- */}
       <Animated.View
@@ -623,8 +610,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 24,
+    borderRadius: 20,
     gap: 8,
+    overflow: 'hidden',
   },
   browseLabel: { color: '#ffffff', fontWeight: '700' },
 
@@ -642,8 +630,9 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 20,
     borderWidth: 1,
+    overflow: 'hidden',
   },
   tabPillActive: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
   tabPillText: { fontSize: 15, fontWeight: '700', color: '#111827' },
@@ -687,12 +676,6 @@ const styles = StyleSheet.create({
   },
   emptyText: { marginTop: 8, color: '#9ca3af', fontSize: 14 },
 
-  blockOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(249,250,251,0.65)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 
   /* --- Floating search --- */
   fabWrap: {

@@ -16,9 +16,11 @@ Pursadari uses a hybrid approach combining local SQLite for performance with Fir
 ### 2. Server Side (Firebase)
 
 - Source of truth for kalaam data
-- Hosts server-side tables (`kalaam_source`, `scraping_metadata`)
+- Hosts server-side collections (`kalaam`, `kalaam_source`, `scraping_metadata`)
 - Leverages Firebase's generous free tier
 - Eliminates need for dedicated server maintenance
+- Supports soft delete with `deleted` field
+- PostgreSQL ID used as Firebase document ID for consistency
 
 ### 3. Client Side (SQLite)
 
@@ -42,8 +44,10 @@ Pursadari uses a hybrid approach combining local SQLite for performance with Fir
 1. App launches with pre-populated SQLite database
 2. When online, checks `last_source_sync_timestamp` from settings
 3. Fetches only new/modified records from Firebase since last sync
-4. Updates local SQLite database
-5. Updates `last_source_sync_timestamp`
+4. Handles soft deletes by filtering out records with `deleted = true`
+5. Updates local SQLite database with UPSERT operations
+6. Updates `last_source_sync_timestamp`
+7. Maintains data consistency between Firebase and local SQLite
 
 ## Cost Considerations
 

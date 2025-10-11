@@ -7,7 +7,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 import AppHeader from '../components/AppHeader';
 import { useThemeTokens, useSettings } from '../context/SettingsContext';
-import databaseService from '../database/DatabaseFactory';
+import database from '../database/Database';
 import { RootStackParamList, Kalaam } from '../types';
 import FavoritesService from '../services/FavoritesService';
 
@@ -21,6 +21,8 @@ export default function FavouritesScreen() {
   const [kalaams, setKalaams] = useState<Kalaam[]>([]);
   const [totalKalaams, setTotalKalaams] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [pinnedKalaams, setPinnedKalaams] = useState<Kalaam[]>([]);
+  const [pinStates, setPinStates] = useState<Record<number, boolean>>({});
   const limit = 50;
   
   // Pagination states
@@ -42,20 +44,89 @@ export default function FavouritesScreen() {
         setNextPageLoading(true);
       }
       
-      const result = await FavoritesService.getFavoriteKalaams(limit, startDoc);
+      const [result, pinned] = await Promise.all([
+        FavoritesService.getFavoriteKalaams(limit, startDoc),
+        FavoritesService.getPinnedKalaams()
+      ]);
       
       if (append) {
         setKalaams(prev => [...prev, ...result.kalaams]);
       } else {
-        setKalaams(result.kalaams);
+        // Sort kalaams: special content (negative IDs) first, then pinned, then others
+        const sortedKalaams = result.kalaams.sort((a, b) => {
+          // Special content always comes first
+          if (a.id < 0 && b.id >= 0) return -1;
+          if (a.id >= 0 && b.id < 0) return 1;
+          
+          // Within non-special content, sort by pinned status
+          if (a.id >= 0 && b.id >= 0) {
+            const aPinned = pinned.some(p => p.id === a.id);
+            const bPinned = pinned.some(p => p.id === b.id);
+            if (aPinned && !bPinned) return -1;
+            if (!aPinned && bPinned) return 1;
+          }
+          
+          return 0;
+        });
+        setKalaams(sortedKalaams);
       }
       
       setTotalKalaams(result.total);
       setLastVisibleDoc(result.lastVisibleDoc);
       setHasMore(result.kalaams.length === limit && !!result.lastVisibleDoc);
+      setPinnedKalaams(pinned);
+      
+      // Load pin states for all kalaams
+      const pinStates: Record<number, boolean> = {};
+      for (const kalaam of result.kalaams) {
+        pinStates[kalaam.id] = await FavoritesService.isPinned(kalaam.id);
+      }
+      setPinStates(pinStates);
     } finally {
       setLoading(false);
       setNextPageLoading(false);
+    }
+  };
+
+  const togglePin = async (kalaamId: number) => {
+    try {
+      const isPinned = pinStates[kalaamId];
+      
+      if (isPinned) {
+        await FavoritesService.unpinKalaam(kalaamId);
+        setPinStates(prev => ({ ...prev, [kalaamId]: false }));
+        setPinnedKalaams(prev => prev.filter(k => k.id !== kalaamId));
+      } else {
+        const success = await FavoritesService.pinKalaam(kalaamId);
+        if (success) {
+          setPinStates(prev => ({ ...prev, [kalaamId]: true }));
+          // Add to pinned list
+          const kalaam = kalaams.find(k => k.id === kalaamId);
+          if (kalaam) {
+            setPinnedKalaams(prev => [...prev, kalaam]);
+          }
+        } else {
+          // Show error - max pins reached
+          console.log('Max pins reached (3)');
+        }
+      }
+      
+      // Re-sort the kalaams list to move pinned items to top
+      setKalaams(prev => {
+        const updatedPinned = isPinned 
+          ? pinnedKalaams.filter(k => k.id !== kalaamId)
+          : [...pinnedKalaams, kalaams.find(k => k.id === kalaamId)].filter(Boolean);
+        
+        return prev.sort((a, b) => {
+          const aPinned = updatedPinned.some(p => p.id === a.id);
+          const bPinned = updatedPinned.some(p => p.id === b.id);
+          if (aPinned && !bPinned) return -1;
+          if (!aPinned && bPinned) return 1;
+          return 0;
+        });
+      });
+    } catch (error) {
+      console.error('Error toggling pin:', error);
     }
   };
 
@@ -96,7 +167,12 @@ export default function FavouritesScreen() {
                   style={{ flex: 1 }}
                   onPress={() => navigation.navigate('Home' as never, { screen: 'Kalaam', params: { id: k.id } } as never)}
                 >
-                  <Text style={[styles.itemTitle, { color: t.textPrimary }]}>{k.title}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    {k.id < 0 && (
+                      <MaterialCommunityIcons name="star" size={16} color={accentColor} />
+                    )}
+                    <Text style={[styles.itemTitle, { color: t.textPrimary, flex: 1 }]}>{k.title}</Text>
+                  </View>
                   <View style={styles.metaRow}>
                     {k.reciter ? (
                       <View style={styles.metaChip}>
@@ -112,9 +188,27 @@ export default function FavouritesScreen() {
                     ) : null}
                   </View>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => remove(k)}>
-                  <MaterialCommunityIcons name="delete" size={20} color={t.danger} />
-                </TouchableOpacity>
+                {/* Hide pin/remove buttons for special content (Hadees e Kisa, Ziyarat Ashura) */}
+                {k.id >= 0 && (
+                  <View style={styles.actionButtons}>
+                    <TouchableOpacity 
+                      onPress={() => togglePin(k.id)}
+                      style={styles.pinButton}
+                    >
+                      <MaterialCommunityIcons 
+                        name={pinStates[k.id] ? "pin" : "pin-outline"} 
+                        size={20} 
+                        color={pinStates[k.id] ? accentColor : t.textMuted} 
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={() => remove(k)}
+                      style={styles.removeButton}
+                    >
+                      <MaterialCommunityIcons name="minus-circle" size={20} color={t.danger} />
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             ))}
             {nextPageLoading && (
@@ -169,6 +263,11 @@ const styles = StyleSheet.create({
   pageButtonDisabled: { backgroundColor: '#9ca3af' },
   pageButtonText: { fontWeight: '600' },
   pageIndicator: { marginHorizontal: 12, color: '#6b7280' },
+  removeButton: {
+    padding: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  },
   
   loadingMore: {
     flexDirection: 'row',
@@ -193,5 +292,15 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '600',
     fontSize: 16,
+  },
+
+  // Action buttons
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  pinButton: {
+    padding: 4,
   },
 });

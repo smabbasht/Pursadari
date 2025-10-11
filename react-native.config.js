@@ -4,5 +4,7 @@ module.exports = {
       packageName: 'com.pursadari',
     },
   },
-  assets: ['./node_modules/react-native-vector-icons/Fonts'],
+  assets: [
+    './node_modules/react-native-vector-icons/Fonts',
+  ],
 };

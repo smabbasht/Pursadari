@@ -1,6 +1,7 @@
 import AppHeader from '../components/AppHeader';
 import { useThemeTokens, useSettings } from '../context/SettingsContext';
-import React, { useState } from 'react';
+import database from '../database/Database';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,6 +11,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Modal,
+  FlatList,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -55,6 +59,95 @@ export default function AddLyricsScreen() {
   const [yt, setYt] = useState('');
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Dropdown states
+  const [masaibList, setMasaibList] = useState<string[]>([]);
+  const [reciterList, setReciterList] = useState<string[]>([]);
+  const [poetList, setPoetList] = useState<string[]>([]);
+  const [loadingLists, setLoadingLists] = useState(true);
+  
+  // Dropdown UI states
+  const [showMasaibDropdown, setShowMasaibDropdown] = useState(false);
+  const [showReciterDropdown, setShowReciterDropdown] = useState(false);
+  const [showPoetDropdown, setShowPoetDropdown] = useState(false);
+  const [newReciter, setNewReciter] = useState('');
+  const [newPoet, setNewPoet] = useState('');
+
+  // Load dropdown data
+  useEffect(() => {
+    const loadDropdownData = async () => {
+      try {
+        await database.init();
+        const [masaibs, poets, reciters] = await Promise.all([
+          database.getMasaibGroups(),
+          database.getPoetGroups(),
+          database.getReciterGroups(),
+        ]);
+        
+        setMasaibList(masaibs.map(m => m.masaib).sort());
+        setPoetList(poets.map(p => p.poet).sort());
+        setReciterList(reciters.map(r => r.reciter).sort());
+      } catch (error) {
+        console.error('Failed to load dropdown data:', error);
+      } finally {
+        setLoadingLists(false);
+      }
+    };
+    
+    loadDropdownData();
+  }, []);
+
+  // Filtered lists for search - masaib should always show full list
+  const filteredMasaibList = useMemo(() => {
+    return masaibList; // Always show full list for masaib
+  }, [masaibList]);
+
+  const filteredReciterList = useMemo(() => {
+    return reciterList.filter(r => r.toLowerCase().includes(reciter.toLowerCase()));
+  }, [reciterList, reciter]);
+
+  const filteredPoetList = useMemo(() => {
+    return poetList.filter(p => p.toLowerCase().includes(poet.toLowerCase()));
+  }, [poetList, poet]);
+
+  // Dropdown handlers
+  const handleMasaibSelect = (selectedMasaib: string) => {
+    // If clicking the same masaib, unselect it
+    if (masaib === selectedMasaib) {
+      setMasaib('');
+    } else {
+      setMasaib(selectedMasaib);
+    }
+    setShowMasaibDropdown(false);
+  };
+
+  const handleReciterSelect = (selectedReciter: string) => {
+    setReciter(selectedReciter);
+    setShowReciterDropdown(false);
+    Keyboard.dismiss();
+  };
+
+  const handlePoetSelect = (selectedPoet: string) => {
+    setPoet(selectedPoet);
+    setShowPoetDropdown(false);
+    Keyboard.dismiss();
+  };
+
+  const handleAddNewReciter = () => {
+    if (newReciter.trim()) {
+      setReciter(newReciter.trim());
+      setNewReciter('');
+      setShowReciterDropdown(false);
+    }
+  };
+
+  const handleAddNewPoet = () => {
+    if (newPoet.trim()) {
+      setPoet(newPoet.trim());
+      setNewPoet('');
+      setShowPoetDropdown(false);
+    }
+  };
 
   const resetForm = () => {
     setTitle('');
@@ -108,7 +201,14 @@ export default function AddLyricsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
       <AppHeader />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+      <ScrollView 
+        style={{ flex: 1 }} 
+        contentContainerStyle={{ padding: 16, paddingBottom: 200 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        automaticallyAdjustKeyboardInsets={true}
+        keyboardDismissMode="interactive"
+      >
         <View style={[styles.card, { backgroundColor: t.surface }]}>
           <View style={styles.sectionHeader}>
             <MaterialCommunityIcons
@@ -132,26 +232,30 @@ export default function AddLyricsScreen() {
               <Text style={[styles.label, { color: t.textSecondary }]}>
                 <MaterialCommunityIcons name="account-music" /> Reciter *
               </Text>
-              <TextInput
-                value={reciter}
-                onChangeText={setReciter}
-                placeholder="Name of the reciter"
-                placeholderTextColor={t.textMuted}
-                style={[styles.input, { backgroundColor: t.background, borderColor: t.border, color: t.textPrimary }]}
-              />
+              <TouchableOpacity
+                style={[styles.dropdownInput, { backgroundColor: t.background, borderColor: t.border }]}
+                onPress={() => setShowReciterDropdown(true)}
+              >
+                <Text style={[styles.dropdownText, { color: reciter ? t.textPrimary : t.textMuted }]}>
+                  {reciter || 'Select reciter'}
+                </Text>
+                <MaterialCommunityIcons name="chevron-down" size={20} color={t.textMuted} />
+              </TouchableOpacity>
             </View>
             <View style={{ width: 12 }} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.label, { color: t.textSecondary }]}>
                 <MaterialCommunityIcons name="feather" /> Poet *
               </Text>
-              <TextInput
-                value={poet}
-                onChangeText={setPoet}
-                placeholder="Name of the poet"
-                placeholderTextColor={t.textMuted}
-                style={[styles.input, { backgroundColor: t.background, borderColor: t.border, color: t.textPrimary }]}
-              />
+              <TouchableOpacity
+                style={[styles.dropdownInput, { backgroundColor: t.background, borderColor: t.border }]}
+                onPress={() => setShowPoetDropdown(true)}
+              >
+                <Text style={[styles.dropdownText, { color: poet ? t.textPrimary : t.textMuted }]}>
+                  {poet || 'Select poet'}
+                </Text>
+                <MaterialCommunityIcons name="chevron-down" size={20} color={t.textMuted} />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -159,13 +263,15 @@ export default function AddLyricsScreen() {
             <MaterialCommunityIcons name="book-open-variant" /> Category
             (Masaib) *
           </Text>
-          <TextInput
-            value={masaib}
-            onChangeText={setMasaib}
-            placeholder="e.g., Karbala, Ashura, Ahlul Bayt"
-            placeholderTextColor={t.textMuted}
-            style={[styles.input, { backgroundColor: t.background, borderColor: t.border, color: t.textPrimary }]}
-          />
+          <TouchableOpacity
+            style={[styles.dropdownInput, { backgroundColor: t.background, borderColor: t.border }]}
+            onPress={() => setShowMasaibDropdown(true)}
+          >
+            <Text style={[styles.dropdownText, { color: masaib ? t.textPrimary : t.textMuted }]}>
+              {masaib || 'Select masaib'}
+            </Text>
+            <MaterialCommunityIcons name="chevron-down" size={20} color={t.textMuted} />
+          </TouchableOpacity>
         </View>
 
         <View style={[styles.card, { backgroundColor: t.surface }]}>
@@ -256,6 +362,221 @@ export default function AddLyricsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Masaib Dropdown Modal */}
+      <Modal
+        visible={showMasaibDropdown}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMasaibDropdown(false)}
+      >
+        <View style={[styles.modalBackdrop, { backgroundColor: t.modalBackdrop }]}>
+          <View style={[styles.modalContent, { backgroundColor: t.surface }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: t.divider }]}>
+              <Text style={[styles.modalTitle, { color: t.textPrimary }]}>Select Masaib</Text>
+              <TouchableOpacity onPress={() => setShowMasaibDropdown(false)}>
+                <MaterialCommunityIcons name="close" size={24} color={t.textMuted} />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={filteredMasaibList}
+              keyExtractor={(item) => item}
+              style={styles.dropdownList}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.dropdownItem, 
+                    { 
+                      borderBottomColor: t.divider,
+                      backgroundColor: masaib === item ? accentColor + '20' : 'transparent'
+                    }
+                  ]}
+                  onPress={() => handleMasaibSelect(item)}
+                >
+                  <Text style={[
+                    styles.dropdownItemText, 
+                    { 
+                      color: masaib === item ? accentColor : t.textPrimary,
+                      fontWeight: masaib === item ? '600' : '400'
+                    }
+                  ]}>{item}</Text>
+                  {masaib === item && (
+                    <MaterialCommunityIcons name="check" size={20} color={accentColor} />
+                  )}
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyDropdown}>
+                  <Text style={[styles.emptyDropdownText, { color: t.textMuted }]}>
+                    No masaib found
+                  </Text>
+                </View>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Reciter Dropdown Modal */}
+      <Modal
+        visible={showReciterDropdown}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowReciterDropdown(false)}
+      >
+        <View style={[styles.modalBackdrop, { backgroundColor: t.modalBackdrop }]}>
+          <View style={[styles.modalContent, { backgroundColor: t.surface }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: t.divider }]}>
+              <Text style={[styles.modalTitle, { color: t.textPrimary }]}>Select Reciter</Text>
+              <TouchableOpacity onPress={() => setShowReciterDropdown(false)}>
+                <MaterialCommunityIcons name="close" size={24} color={t.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search Input */}
+            <View style={[styles.searchSection, { borderBottomColor: t.divider }]}>
+              <TextInput
+                style={[styles.searchInput, { backgroundColor: t.background, borderColor: t.border, color: t.textPrimary }]}
+                value={reciter}
+                onChangeText={(text) => {
+                  setReciter(text);
+                }}
+                placeholder="Search reciters..."
+                placeholderTextColor={t.textMuted}
+                onFocus={() => {
+                  // Don't close modal on focus
+                }}
+              />
+            </View>
+
+            {/* Add New Reciter Input */}
+            <View style={[styles.addNewSection, { borderBottomColor: t.divider }]}>
+              <Text style={[styles.addNewLabel, { color: t.textSecondary }]}>Add New Reciter:</Text>
+              <View style={styles.addNewInputRow}>
+                <TextInput
+                  style={[styles.addNewInput, { backgroundColor: t.background, borderColor: t.border, color: t.textPrimary }]}
+                  value={newReciter}
+                  onChangeText={setNewReciter}
+                  placeholder="Enter new reciter name"
+                  placeholderTextColor={t.textMuted}
+                />
+                <TouchableOpacity
+                  style={[styles.addNewButton, { backgroundColor: accentColor }]}
+                  onPress={handleAddNewReciter}
+                  disabled={!newReciter.trim()}
+                >
+                  <MaterialCommunityIcons name="plus" size={20} color={t.accentOnAccent} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            
+            <FlatList
+              data={filteredReciterList}
+              keyExtractor={(item) => item}
+              style={styles.dropdownList}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.dropdownItem, { borderBottomColor: t.divider }]}
+                  onPress={() => handleReciterSelect(item)}
+                >
+                  <Text style={[styles.dropdownItemText, { color: t.textPrimary }]}>{item}</Text>
+                  {reciter === item && (
+                    <MaterialCommunityIcons name="check" size={20} color={accentColor} />
+                  )}
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyDropdown}>
+                  <Text style={[styles.emptyDropdownText, { color: t.textMuted }]}>
+                    No reciters found
+                  </Text>
+                </View>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Poet Dropdown Modal */}
+      <Modal
+        visible={showPoetDropdown}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPoetDropdown(false)}
+      >
+        <View style={[styles.modalBackdrop, { backgroundColor: t.modalBackdrop }]}>
+          <View style={[styles.modalContent, { backgroundColor: t.surface }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: t.divider }]}>
+              <Text style={[styles.modalTitle, { color: t.textPrimary }]}>Select Poet</Text>
+              <TouchableOpacity onPress={() => setShowPoetDropdown(false)}>
+                <MaterialCommunityIcons name="close" size={24} color={t.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search Input */}
+            <View style={[styles.searchSection, { borderBottomColor: t.divider }]}>
+              <TextInput
+                style={[styles.searchInput, { backgroundColor: t.background, borderColor: t.border, color: t.textPrimary }]}
+                value={poet}
+                onChangeText={(text) => {
+                  setPoet(text);
+                }}
+                placeholder="Search poets..."
+                placeholderTextColor={t.textMuted}
+                onFocus={() => {
+                  // Don't close modal on focus
+                }}
+              />
+            </View>
+
+            {/* Add New Poet Input */}
+            <View style={[styles.addNewSection, { borderBottomColor: t.divider }]}>
+              <Text style={[styles.addNewLabel, { color: t.textSecondary }]}>Add New Poet:</Text>
+              <View style={styles.addNewInputRow}>
+                <TextInput
+                  style={[styles.addNewInput, { backgroundColor: t.background, borderColor: t.border, color: t.textPrimary }]}
+                  value={newPoet}
+                  onChangeText={setNewPoet}
+                  placeholder="Enter new poet name"
+                  placeholderTextColor={t.textMuted}
+                />
+                <TouchableOpacity
+                  style={[styles.addNewButton, { backgroundColor: accentColor }]}
+                  onPress={handleAddNewPoet}
+                  disabled={!newPoet.trim()}
+                >
+                  <MaterialCommunityIcons name="plus" size={20} color={t.accentOnAccent} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            
+            <FlatList
+              data={filteredPoetList}
+              keyExtractor={(item) => item}
+              style={styles.dropdownList}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.dropdownItem, { borderBottomColor: t.divider }]}
+                  onPress={() => handlePoetSelect(item)}
+                >
+                  <Text style={[styles.dropdownItemText, { color: t.textPrimary }]}>{item}</Text>
+                  {poet === item && (
+                    <MaterialCommunityIcons name="check" size={20} color={accentColor} />
+                  )}
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyDropdown}>
+                  <Text style={[styles.emptyDropdownText, { color: t.textMuted }]}>
+                    No poets found
+                  </Text>
+                </View>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -303,4 +624,110 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   buttonText: { color: '#ffffff', fontWeight: '700' },
+
+  // Dropdown styles
+  dropdownInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 44,
+  },
+  dropdownText: {
+    flex: 1,
+    fontSize: 16,
+  },
+
+  // Modal styles
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalContent: {
+    width: '100%',
+    maxHeight: '70%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  dropdownList: {
+    maxHeight: 300,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  dropdownItemText: {
+    flex: 1,
+    fontSize: 16,
+  },
+  emptyDropdown: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyDropdownText: {
+    fontSize: 16,
+  },
+
+  // Add new section styles
+  addNewSection: {
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  addNewLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  addNewInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  addNewInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 16,
+  },
+  addNewButton: {
+    padding: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 44,
+  },
+
+  // Search section styles
+  searchSection: {
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+  },
 });

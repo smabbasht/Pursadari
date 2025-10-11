@@ -59,8 +59,9 @@ CREATE TABLE kalaam (
     poet TEXT,
     reciter TEXT,
     masaib TEXT,
-    yt_link, TEXT,
-    last_modified TIMESTAMP
+    yt_link TEXT,
+    last_modified TIMESTAMP,
+    deleted BOOLEAN DEFAULT FALSE
 );
 ```
 
@@ -100,6 +101,8 @@ CREATE TABLE scraping_metadata (
 - Client-side tables remain local
 - Server-side tables (kalaam_sources, scraping_metadata) remain on server
 - New content propagates through kalaam table sync
+- Soft delete support: records marked as `deleted = TRUE` are filtered out on client
+- Updates and deletions are handled via `last_modified` timestamp tracking
 
 ## Data Flow
 

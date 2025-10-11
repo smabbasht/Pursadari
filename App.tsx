@@ -1,6 +1,6 @@
 /**
- * PursaDari App
- * https://github.com/smabbasht/PursaDari
+ * Pursadari App
+ * https://github.com/smabbasht/Pursadari
  */
 
 import React, { useEffect, useState } from 'react';
@@ -13,6 +13,7 @@ import {
   Animated,
   Dimensions,
   Image,
+  TouchableOpacity,
 } from 'react-native';
 import {
   NavigationContainer,
@@ -25,9 +26,12 @@ import {
   SafeAreaProvider,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import databaseService from './src/database/DatabaseFactory';
+import database from './src/database/Database';
 import { SettingsProvider, useSettings } from './src/context/SettingsContext';
 import { useThemeTokens } from './src/context/SettingsContext';
+import { backgroundSyncManager } from './src/services/BackgroundSyncManager';
+import { foregroundSyncManager } from './src/services/ForegroundSyncManager';
+import { notificationService } from './src/services/NotificationService';
 
 import { RootStackParamList, TabParamList } from './src/types';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -38,9 +42,7 @@ import SearchScreen from './src/screens/SearchScreen';
 import AddLyricsScreen from './src/screens/AddLyricsScreen';
 import FavouritesScreen from './src/screens/FavouritesScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
-import MasaibScreen from './src/screens/MasaibScreen';
-import PoetScreen from './src/screens/PoetScreen';
-import ReciterScreen from './src/screens/ReciterScreen';
+import ContentListScreen from './src/screens/ContentListScreen';
 import KalaamScreen from './src/screens/KalaamScreen';
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -110,7 +112,7 @@ function AnimatedTabIcon({
   );
 }
 
-function TabNavigator() {
+function TabNavigator({ onHeaderPress }: { onHeaderPress: () => void }) {
   return (
     <Tab.Navigator
       initialRouteName="Home"
@@ -130,7 +132,6 @@ function TabNavigator() {
     >
       <Tab.Screen
         name="AddLyrics"
-        component={AddLyricsScreen}
         options={{
           tabBarLabel: 'Add Lyrics',
           tabBarIcon: ({ color, size, focused }) => (
@@ -142,10 +143,11 @@ function TabNavigator() {
             />
           ),
         }}
-      />
+      >
+        {() => <AddLyricsScreen />}
+      </Tab.Screen>
       <Tab.Screen
         name="Search"
-        component={SearchScreen}
         options={{
           tabBarLabel: 'Search',
           tabBarIcon: ({ color, size, focused }) => (
@@ -157,10 +159,11 @@ function TabNavigator() {
             />
           ),
         }}
-      />
+      >
+        {() => <SearchScreen />}
+      </Tab.Screen>
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
         options={{
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, size, focused }) => (
@@ -172,7 +175,9 @@ function TabNavigator() {
             />
           ),
         }}
-      />
+      >
+        {() => <HomeScreen />}
+      </Tab.Screen>
       <Tab.Screen
         name="Favourites"
         component={FavouritesScreen}
@@ -213,6 +218,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [initializationStep, setInitializationStep] = useState('');
+  const [showLaunchScreen, setShowLaunchScreen] = useState(false);
 
   useEffect(() => {
     async function initializeApp() {
@@ -220,7 +226,7 @@ function App() {
         setInitializationStep('Initializing database...');
         setProgress(10);
 
-        await databaseService.init();
+        await database.init();
 
         setInitializationStep('Loading settings...');
         setProgress(50);
@@ -231,13 +237,29 @@ function App() {
         setInitializationStep('Finalizing...');
         setProgress(90);
 
+        // Initialize sync managers in background (non-blocking)
+        setTimeout(async () => {
+          try {
+            await notificationService.initialize();
+            // Disabled all auto sync on launch for first release
+            // await foregroundSyncManager.initialize();
+            // await backgroundSyncManager.startBackgroundSync();
+            console.log('[App] App initialization completed (all auto sync disabled)');
+          } catch (error) {
+            console.error(
+              '[App] App initialization failed:',
+              error,
+            );
+          }
+        }, 100);
+
+        setInitializationStep('Finalizing...');
+        setProgress(90);
+
         await new Promise<void>(resolve => setTimeout(resolve, 200));
 
         setProgress(100);
-
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 500);
+        // Keep showing launch screen, don't auto-continue
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Failed to initialize app',
@@ -249,59 +271,157 @@ function App() {
     initializeApp();
   }, []);
 
-  if (isLoading) {
+  if (isLoading || showLaunchScreen) {
     return (
       <SafeAreaProvider>
         <View
           style={{
             flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
             backgroundColor: isDarkMode ? '#0b1220' : '#f9fafb',
           }}
         >
-          <Image
-            source={require('./assets/favicon_512.png')}
+          {/* Modern Launch Screen Design */}
+          <TouchableOpacity
             style={{
-              width: 80,
-              height: 80,
-              marginBottom: 8,
+              flex: 1,
+              position: 'relative',
+              justifyContent: 'center',
+              alignItems: 'center',
             }}
-            resizeMode="contain"
-          />
-          <Text
-            style={{
-              marginTop: 24,
-              fontSize: 24,
-              fontWeight: '700',
-              color: isDarkMode ? '#e5e7eb' : '#111827',
-              marginBottom: 8,
+            onPress={() => {
+              if (progress >= 100) {
+                if (showLaunchScreen) {
+                  setShowLaunchScreen(false);
+                } else {
+                  setIsLoading(false);
+                }
+              }
             }}
+            activeOpacity={1}
           >
-            Pursadari
-          </Text>
+            {/* Background Image */}
+            <Image
+              source={isDarkMode ? require('./assets/intro-pic-dark.png') : require('./assets/intro-pic-light.png')}
+              style={{
+                width: 320,
+                height: 320,
+                borderRadius: 24,
+                shadowColor: '#000000',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.3,
+                shadowRadius: 16,
+              }}
+              resizeMode="cover"
+            />
+
+            {/* Calligraphy Logo Overlay */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 80,
+                left: 0,
+                right: 0,
+                alignItems: 'center',
+                zIndex: 20,
+              }}
+            >
+              <Image
+                source={isDarkMode ? require('./assets/pursadari-calligraphy-dark.png') : require('./assets/pursadari-calligraphy-light.png')}
+                style={{
+                  width: 200,
+                  height: 60,
+                  resizeMode: 'contain',
+                }}
+              />
+            </View>
+
+            {/* Progress Section */}
+            {progress < 100 ? (
+              <View
+                style={{
+                  position: 'absolute',
+                  bottom: 100,
+                  left: 0,
+                  right: 0,
+                  alignItems: 'center',
+                  zIndex: 20,
+                }}
+              >
           <Text
             style={{
-              marginBottom: 32,
-              fontSize: 16,
-              color: isDarkMode ? '#94a3b8' : '#6b7280',
+                    marginBottom: 20,
+                    fontSize: 18,
+                    color: isDarkMode ? '#ffffff' : '#000000',
+                    textAlign: 'center',
+                    fontFamily: 'Roboto-Medium',
+                    textShadowColor: isDarkMode ? '#000000' : '#ffffff',
+                    textShadowOffset: { width: 1, height: 1 },
+                    textShadowRadius: 2,
             }}
           >
             {initializationStep}
           </Text>
           <ProgressBar
             progress={progress}
-            color={isDarkMode ? '#e5e7eb' : '#16a34a'}
+                  color={isDarkMode ? '#ffffff' : '#16a34a'}
           />
           <Text
             style={{
               marginTop: 16,
-              fontSize: 14,
-              color: isDarkMode ? '#94a3b8' : '#6b7280',
+                    fontSize: 16,
+                    color: isDarkMode ? '#ffffff' : '#000000',
+                    fontFamily: 'Roboto-Regular',
+                    textShadowColor: isDarkMode ? '#000000' : '#ffffff',
+                    textShadowOffset: { width: 1, height: 1 },
+                    textShadowRadius: 2,
             }}
           >
             {progress}%
           </Text>
+              </View>
+            ) : (
+              /* Elegant Tap to Continue Instruction */
+              <View
+                style={{
+                  position: 'absolute',
+                  bottom: 80,
+                  left: 0,
+                  right: 0,
+                  alignItems: 'center',
+                  zIndex: 20,
+                }}
+              >
+                <View
+                  style={{
+                    backgroundColor: isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.9)',
+                    paddingHorizontal: 24,
+                    paddingVertical: 12,
+                    borderRadius: 20,
+                    borderWidth: 1,
+                    borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                    shadowColor: '#000000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 8,
+                    elevation: 8,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: isDarkMode ? '#ffffff' : '#000000',
+                      fontSize: 16,
+                      fontWeight: '500',
+                      textAlign: 'center',
+                      fontFamily: 'Roboto-Medium',
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    Tap to Continue
+                  </Text>
+                </View>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
       </SafeAreaProvider>
     );
@@ -378,9 +498,10 @@ function App() {
               backgroundColor: t.surface,
               borderTopWidth: 1,
               borderTopColor: t.border,
-              paddingBottom: Math.max(insets.bottom, 6),
-              paddingTop: 6,
-              height: 56 + insets.bottom,
+              paddingBottom: Math.max(insets.bottom, 8),
+              paddingTop: 8,
+              height: 60 + Math.max(insets.bottom, 8),
+              minHeight: 60,
             },
             headerShown: false,
             tabBarHideOnKeyboard: true,
@@ -421,9 +542,9 @@ function App() {
             children={() => (
               <Stack.Navigator screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="Tabs" component={HomeScreen} />
-                <Stack.Screen name="Masaib" component={MasaibScreen} />
-                <Stack.Screen name="Poet" component={PoetScreen} />
-                <Stack.Screen name="Reciter" component={ReciterScreen} />
+                <Stack.Screen name="Masaib" component={ContentListScreen} />
+                <Stack.Screen name="Poet" component={ContentListScreen} />
+                <Stack.Screen name="Reciter" component={ContentListScreen} />
                 <Stack.Screen name="Kalaam" component={KalaamScreen} />
               </Stack.Navigator>
             )}

@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
-import databaseService from '../database/DatabaseFactory';
+import database, { Settings } from '../database/Database';
+import FontManager from '../utils/FontManager';
+import { SyncConfig } from '../types';
 
 
 type Theme = 'light' | 'dark';
@@ -22,6 +24,11 @@ type SettingsValue = {
   setFontScale: (n: number) => void;
   defaultLanguage: 'urdu' | 'english';
   setDefaultLanguage: (l: 'urdu' | 'english') => void;
+  // Sync settings
+  syncConfig: SyncConfig;
+  setSyncConfig: (config: Partial<SyncConfig>) => void;
+  lastSyncTimestamp: number;
+  isOnline: boolean;
 };
 
 const SettingsContext = createContext<SettingsValue>({
@@ -41,6 +48,17 @@ const SettingsContext = createContext<SettingsValue>({
   setFontScale: () => {},
   defaultLanguage: 'urdu',
   setDefaultLanguage: () => {},
+  // Sync settings
+  syncConfig: {
+    backgroundSyncInterval: 30,
+    foregroundSyncOnAppOpen: true,
+    wifiOnlySync: false,
+    maxRetryAttempts: 3,
+    batchSize: 100
+  },
+  setSyncConfig: () => {},
+  lastSyncTimestamp: 0,
+  isOnline: false,
 });
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
@@ -52,24 +70,55 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [urduFontScale, setUrduFontScale] = useState<number>(1.2);
   const [fontScale, setFontScale] = useState<number>(1);
   const [defaultLanguage, setDefaultLanguage] = useState<'urdu' | 'english'>('urdu');
+  const [syncConfig, setSyncConfig] = useState<SyncConfig>({
+    backgroundSyncInterval: 30,
+    foregroundSyncOnAppOpen: true,
+    wifiOnlySync: false,
+    maxRetryAttempts: 3,
+    batchSize: 100
+  });
+  const [lastSyncTimestamp, setLastSyncTimestamp] = useState<number>(0);
+  const [isOnline, setIsOnline] = useState<boolean>(false);
 
   useEffect(() => {
     const loadSettings = async () => {
-      await databaseService.init();
-      const settings = await databaseService.getAllSettings();
+      await database.init();
+      await FontManager.initialize(); // Initialize font manager first
+      const settings = await database.getAllSettings();
+      
       if (settings.theme) setTheme(settings.theme as Theme);
       if (settings.accent_color) setAccentColor(settings.accent_color);
-      if (settings.eng_font) setEngFont(settings.eng_font);
-      if (settings.urdu_font) setUrduFont(settings.urdu_font);
+      
+      // Use safe font handling
+      const safeEngFont = FontManager.getSafeFontFamily(settings.eng_font || 'System', false);
+      const safeUrduFont = FontManager.getSafeFontFamily(settings.urdu_font || 'System', true);
+      setEngFont(safeEngFont);
+      setUrduFont(safeUrduFont);
+      
       if (settings.eng_font_size) setEngFontScale(parseFloat(settings.eng_font_size));
       if (settings.urdu_font_size) setUrduFontScale(parseFloat(settings.urdu_font_size));
       if (settings.default_language) setDefaultLanguage(settings.default_language as 'urdu' | 'english');
+      
+      // Load sync settings
+      if (settings.last_source_sync_timestamp) {
+        setLastSyncTimestamp(parseInt(settings.last_source_sync_timestamp));
+      }
+      
+      // Load sync config
+      if (settings.sync_config) {
+        try {
+          const config = JSON.parse(settings.sync_config);
+          setSyncConfig({ ...syncConfig, ...config });
+        } catch (error) {
+          console.error('Failed to parse sync config:', error);
+        }
+      }
     };
     loadSettings();
   }, []);
 
   const updateSetting = async (key: string, value: string) => {
-    await databaseService.setSetting(key, value);
+    await database.setSetting(key, value);
   };
 
   const value = useMemo(() => ({ 
@@ -85,13 +134,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     },
     engFont, 
     setEngFont: (f: string) => {
-      setEngFont(f);
-      updateSetting('eng_font', f);
+      const safeFont = FontManager.getSafeFontFamily(f, false);
+      setEngFont(safeFont);
+      updateSetting('eng_font', safeFont);
     },
     urduFont, 
     setUrduFont: (f: string) => {
-      setUrduFont(f);
-      updateSetting('urdu_font', f);
+      const safeFont = FontManager.getSafeFontFamily(f, true);
+      setUrduFont(safeFont);
+      updateSetting('urdu_font', safeFont);
     },
     engFontScale, 
     setEngFontScale: (s: number) => {
@@ -108,8 +159,16 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setDefaultLanguage: (l: 'urdu' | 'english') => {
       setDefaultLanguage(l);
       updateSetting('default_language', l);
-    }
-  }), [theme, accentColor, engFont, urduFont, engFontScale, urduFontScale, fontScale, defaultLanguage]);
+    },
+    syncConfig,
+    setSyncConfig: (config: Partial<SyncConfig>) => {
+      const newConfig = { ...syncConfig, ...config };
+      setSyncConfig(newConfig);
+      updateSetting('sync_config', JSON.stringify(newConfig));
+    },
+    lastSyncTimestamp,
+    isOnline
+  }), [theme, accentColor, engFont, urduFont, engFontScale, urduFontScale, fontScale, defaultLanguage, syncConfig, lastSyncTimestamp, isOnline]);
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
 
