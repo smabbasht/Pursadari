@@ -203,6 +203,7 @@ class Database {
     const offset = (page - 1) * limit;
     const searchQuery = `%${query}%`;
 
+    // Get total count for all matches
     const [countResult] = await db.executeSql(
       'SELECT COUNT(*) as total FROM kalaam WHERE title LIKE ? OR lyrics_eng LIKE ? OR lyrics_urdu LIKE ?',
       [searchQuery, searchQuery, searchQuery],
@@ -210,10 +211,19 @@ class Database {
 
     const total = countResult.rows.item(0).total;
 
-    const [result] = await db.executeSql(
-      'SELECT * FROM kalaam WHERE title LIKE ? OR lyrics_eng LIKE ? OR lyrics_urdu LIKE ? ORDER BY title LIMIT ? OFFSET ?',
-      [searchQuery, searchQuery, searchQuery, limit, offset],
-    );
+    // Priority-based search: title matches first, then lyrics matches
+    const [result] = await db.executeSql(`
+      SELECT * FROM kalaam 
+      WHERE title LIKE ? OR lyrics_eng LIKE ? OR lyrics_urdu LIKE ? 
+      ORDER BY 
+        CASE 
+          WHEN title LIKE ? THEN 1 
+          WHEN lyrics_eng LIKE ? OR lyrics_urdu LIKE ? THEN 2 
+          ELSE 3 
+        END,
+        title
+      LIMIT ? OFFSET ?
+    `, [searchQuery, searchQuery, searchQuery, searchQuery, searchQuery, searchQuery, limit, offset]);
 
     const kalaams: Kalaam[] = [];
     for (let i = 0; i < result.rows.length; i++) {

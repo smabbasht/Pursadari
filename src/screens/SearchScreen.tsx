@@ -25,6 +25,8 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Kalaam[]>([]);
+  const [streamingResults, setStreamingResults] = useState<Kalaam[]>([]);
+  const [showGuidance, setShowGuidance] = useState(true);
   const navigation = useNavigation<Nav>();
 
   // debounce timer + request token to drop stale responses
@@ -98,21 +100,52 @@ export default function SearchScreen() {
     const qTrim = q.trim();
     if (!qTrim) {
       setResults([]);
+      setStreamingResults([]);
       setLoading(false);
+      setShowGuidance(true);
       return;
     }
 
-    // const qTrim = normalizeRomanUrduQuery(qTrim);
+    setShowGuidance(false);
+    setStreamingResults([]);
+    setResults([]);
 
     const myReq = ++reqIdRef.current;
     setLoading(true);
+
     try {
+      // Single database call for all results
       const res = await database.searchKalaams(qTrim, 1, 100);
-      if (reqIdRef.current === myReq) setResults(res.kalaams);
+      
+      if (reqIdRef.current !== myReq) return; // Request was cancelled
+      
+      // Simulate streaming by showing results progressively
+      const allResults = res.kalaams;
+      const batchSize = 3; // Show 3 results at a time for faster streaming
+      
+      for (let i = 0; i <= allResults.length; i += batchSize) {
+        if (reqIdRef.current !== myReq) break; // Request was cancelled
+        
+        const currentBatch = allResults.slice(0, i + batchSize);
+        setStreamingResults([...currentBatch]);
+        
+        // Smaller delay for faster streaming
+        if (i + batchSize < allResults.length) {
+          await new Promise(resolve => setTimeout(resolve, 30));
+        }
+      }
+      
+      if (reqIdRef.current === myReq) {
+        setResults(allResults);
+        setStreamingResults([]);
+      }
     } catch (e) {
       // swallow or log; keep UI stable
       console.warn('search error', e);
-      if (reqIdRef.current === myReq) setResults([]);
+      if (reqIdRef.current === myReq) {
+        setResults([]);
+        setStreamingResults([]);
+      }
     } finally {
       if (reqIdRef.current === myReq) setLoading(false);
     }
@@ -141,11 +174,23 @@ export default function SearchScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: t.background }]}>
       <AppHeader />
       <View style={{ padding: 16 }}>
-        <View style={[styles.searchRow, { backgroundColor: t.surface, borderColor: t.border }]}>
-          <MaterialCommunityIcons name="magnify" size={22} color={t.textMuted} />
+        <View
+          style={[
+            styles.searchRow,
+            { backgroundColor: t.surface, borderColor: t.border },
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="magnify"
+            size={22}
+            color={t.textMuted}
+          />
           <TextInput
-            placeholder="Search title..."
-            style={[styles.input, { color: t.textPrimary, backgroundColor: t.surface }]}
+            placeholder="Search titles, lyrics, or any text..."
+            style={[
+              styles.input,
+              { color: t.textPrimary, backgroundColor: t.surface },
+            ]}
             value={query}
             onChangeText={onChange}
             onSubmitEditing={onSearchPress}
@@ -153,19 +198,51 @@ export default function SearchScreen() {
             placeholderTextColor={t.textMuted}
             selectionColor={accentColor}
           />
-          <TouchableOpacity style={[styles.searchBtn, { backgroundColor: accentColor }]} onPress={onSearchPress}>
-            <Text style={[styles.searchBtnText, { color: t.accentOnAccent }]}>Search</Text>
+          <TouchableOpacity
+            style={[styles.searchBtn, { backgroundColor: accentColor }]}
+            onPress={onSearchPress}
+          >
+            <Text style={[styles.searchBtnText, { color: t.accentOnAccent }]}>
+              Search
+            </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Search Guidance Text */}
+        {showGuidance && (
+          <View style={styles.guidanceContainer}>
+            <Text style={[styles.guidanceText, { color: t.textMuted }]}>
+              You can search kalaam in Urdu like 'تو نہ آیا غازی'
+            </Text>
+            <Text style={[styles.guidanceText, { color: t.textMuted }]}>
+              You can also search in English like 'Tu na aaya ghazi'
+            </Text>
+            <Text style={[styles.guidanceText, { color: t.textMuted }]}>
+              You can also do lyrics search such as 'دھوپ میں تُو تھا شجر'
+            </Text>
+            <Text style={[styles.guidanceText, { color: t.textMuted }]}>
+              Or in English similar to 'Dhoop mein tu tha shajar'
+            </Text>
+            <Text style={[styles.guidanceNote, { color: t.textMuted }]}>
+              Note: English roman script spellings don't have a standard so may
+              cause issues for e.g main can be written as mein etc
+            </Text>
+          </View>
+        )}
       </View>
 
       {loading ? (
         <View style={{ padding: 16 }}>
           <ActivityIndicator color={accentColor} />
+          {streamingResults.length > 0 && (
+            <Text style={[styles.streamingText, { color: t.textMuted }]}>
+              Found {streamingResults.length} results so far...
+            </Text>
+          )}
         </View>
       ) : (
         <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
-          {results.map(k => (
+          {(streamingResults.length > 0 ? streamingResults : results).map(k => (
             <TouchableOpacity
               key={k.id}
               style={[styles.itemRow, { backgroundColor: t.surface }]}
@@ -176,8 +253,15 @@ export default function SearchScreen() {
                 )
               }
             >
-              <MaterialCommunityIcons name="music" size={18} color={accentColor} />
-              <Text style={[styles.itemTitle, { color: t.textPrimary }]} numberOfLines={2}>
+              <MaterialCommunityIcons
+                name="music"
+                size={18}
+                color={accentColor}
+              />
+              <Text
+                style={[styles.itemTitle, { color: t.textPrimary }]}
+                numberOfLines={2}
+              >
                 {k.title}
               </Text>
               <MaterialCommunityIcons
@@ -211,6 +295,28 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   searchBtnText: { fontWeight: '700' },
+  guidanceContainer: {
+    marginTop: 16,
+    paddingHorizontal: 4,
+  },
+  guidanceText: {
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 6,
+    marginTop: 2,
+  },
+  guidanceNote: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginTop: 8,
+    opacity: 0.8,
+  },
+  streamingText: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
