@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Pursadari</string>
+    <string name="StallionProjectId">68f2298a3a597442ab3ce897</string>
+  <string name="StallionAppToken">spb_qHCBWnW06DeFyaW6SSsFGSEpkdB4--CBIWarPk19xG</string>
 </resources>

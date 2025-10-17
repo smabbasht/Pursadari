@@ -9,7 +9,7 @@ import {
   useColorScheme,
   View,
   Text,
-  ActivityIndicator,
+  // ActivityIndicator,
   Animated,
   Dimensions,
   Image,
@@ -29,9 +29,10 @@ import {
 import database from './src/database/Database';
 import { SettingsProvider, useSettings } from './src/context/SettingsContext';
 import { useThemeTokens } from './src/context/SettingsContext';
-import { backgroundSyncManager } from './src/services/BackgroundSyncManager';
-import { foregroundSyncManager } from './src/services/ForegroundSyncManager';
+// import { backgroundSyncManager } from './src/services/BackgroundSyncManager';
+// import { foregroundSyncManager } from './src/services/ForegroundSyncManager';
 import { notificationService } from './src/services/NotificationService';
+import { withStallion } from 'react-native-stallion';
 
 import { RootStackParamList, TabParamList } from './src/types';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -59,7 +60,8 @@ function ProgressBar({ progress, color }: { progress: number; color: string }) {
       duration: 300,
       useNativeDriver: false,
     }).start();
-  }, [progress, width]);
+  }, [progress, width, animatedWidth]);
+  // }, [progress, width]);
 
   return (
     <View
@@ -112,113 +114,113 @@ function AnimatedTabIcon({
   );
 }
 
-function TabNavigator({ onHeaderPress }: { onHeaderPress: () => void }) {
-  return (
-    <Tab.Navigator
-      initialRouteName="Home"
-      screenOptions={{
-        tabBarActiveTintColor: '#16a34a',
-        tabBarInactiveTintColor: '#6b7280',
-        tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopWidth: 1,
-          borderTopColor: '#e5e7eb',
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 70,
-        },
-        headerShown: false,
-      }}
-    >
-      <Tab.Screen
-        name="AddLyrics"
-        options={{
-          tabBarLabel: 'Add Lyrics',
-          tabBarIcon: ({ color, size, focused }) => (
-            <AnimatedTabIcon
-              name="text-box-plus"
-              color={color}
-              size={size}
-              focused={focused ?? false}
-            />
-          ),
-        }}
-      >
-        {() => <AddLyricsScreen />}
-      </Tab.Screen>
-      <Tab.Screen
-        name="Search"
-        options={{
-          tabBarLabel: 'Search',
-          tabBarIcon: ({ color, size, focused }) => (
-            <AnimatedTabIcon
-              name="magnify"
-              color={color}
-              size={size}
-              focused={focused ?? false}
-            />
-          ),
-        }}
-      >
-        {() => <SearchScreen />}
-      </Tab.Screen>
-      <Tab.Screen
-        name="Home"
-        options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size, focused }) => (
-            <AnimatedTabIcon
-              name="home-variant"
-              color={color}
-              size={size}
-              focused={focused ?? false}
-            />
-          ),
-        }}
-      >
-        {() => <HomeScreen />}
-      </Tab.Screen>
-      <Tab.Screen
-        name="Favourites"
-        component={FavouritesScreen}
-        options={{
-          tabBarLabel: 'Favourites',
-          tabBarIcon: ({ color, size, focused }) => (
-            <AnimatedTabIcon
-              name="heart"
-              color={color}
-              size={size}
-              focused={focused ?? false}
-            />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          tabBarLabel: 'Settings',
-          tabBarIcon: ({ color, size, focused }) => (
-            <AnimatedTabIcon
-              name="cog"
-              color={color}
-              size={size}
-              focused={focused ?? false}
-            />
-          ),
-        }}
-      />
-    </Tab.Navigator>
-  );
-}
+// function TabNavigator({ onHeaderPress }: { onHeaderPress: () => void }) {
+//   return (
+//     <Tab.Navigator
+//       initialRouteName="Home"
+//       screenOptions={{
+//         tabBarActiveTintColor: '#16a34a',
+//         tabBarInactiveTintColor: '#6b7280',
+//         tabBarStyle: {
+//           backgroundColor: '#ffffff',
+//           borderTopWidth: 1,
+//           borderTopColor: '#e5e7eb',
+//           paddingBottom: 5,
+//           paddingTop: 5,
+//           height: 70,
+//         },
+//         headerShown: false,
+//       }}
+//     >
+//       <Tab.Screen
+//         name="AddLyrics"
+//         options={{
+//           tabBarLabel: 'Add Lyrics',
+//           tabBarIcon: ({ color, size, focused }) => (
+//             <AnimatedTabIcon
+//               name="text-box-plus"
+//               color={color}
+//               size={size}
+//               focused={focused ?? false}
+//             />
+//           ),
+//         }}
+//       >
+//         {() => <AddLyricsScreen />}
+//       </Tab.Screen>
+//       <Tab.Screen
+//         name="Search"
+//         options={{
+//           tabBarLabel: 'Search',
+//           tabBarIcon: ({ color, size, focused }) => (
+//             <AnimatedTabIcon
+//               name="magnify"
+//               color={color}
+//               size={size}
+//               focused={focused ?? false}
+//             />
+//           ),
+//         }}
+//       >
+//         {() => <SearchScreen />}
+//       </Tab.Screen>
+//       <Tab.Screen
+//         name="Home"
+//         options={{
+//           tabBarLabel: 'Home',
+//           tabBarIcon: ({ color, size, focused }) => (
+//             <AnimatedTabIcon
+//               name="home-variant"
+//               color={color}
+//               size={size}
+//               focused={focused ?? false}
+//             />
+//           ),
+//         }}
+//       >
+//         {() => <HomeScreen />}
+//       </Tab.Screen>
+//       <Tab.Screen
+//         name="Favourites"
+//         component={FavouritesScreen}
+//         options={{
+//           tabBarLabel: 'Favourites',
+//           tabBarIcon: ({ color, size, focused }) => (
+//             <AnimatedTabIcon
+//               name="heart"
+//               color={color}
+//               size={size}
+//               focused={focused ?? false}
+//             />
+//           ),
+//         }}
+//       />
+//       <Tab.Screen
+//         name="Settings"
+//         component={SettingsScreen}
+//         options={{
+//           tabBarLabel: 'Settings',
+//           tabBarIcon: ({ color, size, focused }) => (
+//             <AnimatedTabIcon
+//               name="cog"
+//               color={color}
+//               size={size}
+//               focused={focused ?? false}
+//             />
+//           ),
+//         }}
+//       />
+//     </Tab.Navigator>
+//   );
+// }
 
 // Launch Screen Component that can access theme settings
-function LaunchScreen({ 
-  progress, 
-  onPress 
-}: { 
-  progress: number; 
-  onPress: () => void; 
+function LaunchScreen({
+  progress,
+  onPress,
+}: {
+  progress: number;
+  onPress: () => void;
 }) {
   const { theme } = useSettings();
   const isDarkMode = theme === 'dark';
@@ -250,7 +252,11 @@ function LaunchScreen({
           }}
         >
           <Image
-            source={isDarkMode ? require('./assets/pursadari-calligraphy-dark.png') : require('./assets/pursadari-calligraphy-light.png')}
+            source={
+              isDarkMode
+                ? require('./assets/pursadari-calligraphy-dark.png')
+                : require('./assets/pursadari-calligraphy-light.png')
+            }
             style={{
               width: 200,
               height: 60,
@@ -261,7 +267,11 @@ function LaunchScreen({
 
         {/* Main Image - Center Section */}
         <Image
-          source={isDarkMode ? require('./assets/intro-pic-dark.png') : require('./assets/intro-pic-light.png')}
+          source={
+            isDarkMode
+              ? require('./assets/intro-pic-dark.png')
+              : require('./assets/intro-pic-light.png')
+          }
           style={{
             width: 320,
             height: 320,
@@ -270,7 +280,7 @@ function LaunchScreen({
             shadowOffset: { width: 0, height: 8 },
             shadowOpacity: 0.3,
             shadowRadius: 12,
-            elevation: 8,
+            // elevation: 8,
             marginBottom: 16,
           }}
           resizeMode="cover"
@@ -297,12 +307,12 @@ function LaunchScreen({
           >
             Tap Anywhere
           </Text>
-          
+
           <ProgressBar
             progress={progress}
             color={isDarkMode ? '#ffffff' : '#16a34a'}
           />
-          
+
           <Text
             style={{
               marginTop: 12,
@@ -317,7 +327,6 @@ function LaunchScreen({
             {progress < 100 ? 'Initializing...' : 'Ready to continue'}
           </Text>
         </View>
-
       </TouchableOpacity>
     </View>
   );
@@ -328,24 +337,24 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
-  const [initializationStep, setInitializationStep] = useState('');
+  // const [initializationStep, setInitializationStep] = useState('');
   const [showLaunchScreen, setShowLaunchScreen] = useState(false);
 
   useEffect(() => {
     async function initializeApp() {
       try {
-        setInitializationStep('Initializing database...');
+        // setInitializationStep('Initializing database...');
         setProgress(10);
 
         await database.init();
 
-        setInitializationStep('Loading settings...');
+        // setInitializationStep('Loading settings...');
         setProgress(50);
 
         // Small delay for visual feedback
         await new Promise<void>(resolve => setTimeout(resolve, 300));
 
-        setInitializationStep('Finalizing...');
+        // setInitializationStep('Finalizing...');
         setProgress(90);
 
         // Initialize sync managers in background (non-blocking)
@@ -355,16 +364,15 @@ function App() {
             // Disabled all auto sync on launch for first release
             // await foregroundSyncManager.initialize();
             // await backgroundSyncManager.startBackgroundSync();
-            console.log('[App] App initialization completed (all auto sync disabled)');
-          } catch (error) {
-            console.error(
-              '[App] App initialization failed:',
-              error,
+            console.log(
+              '[App] App initialization completed (all auto sync disabled)',
             );
+          } catch (error) {
+            console.error('[App] App initialization failed:', error);
           }
         }, 100);
 
-        setInitializationStep('Finalizing...');
+        // setInitializationStep('Finalizing...');
         setProgress(90);
 
         await new Promise<void>(resolve => setTimeout(resolve, 200));
@@ -381,7 +389,6 @@ function App() {
 
     initializeApp();
   }, []);
-
 
   if (error) {
     return (
@@ -557,14 +564,14 @@ function App() {
       <SafeAreaProvider>
         <StatusBar barStyle={systemIsDark ? 'light-content' : 'dark-content'} />
         <SettingsProvider>
-          <LaunchScreen 
-            progress={progress} 
+          <LaunchScreen
+            progress={progress}
             onPress={() => {
               if (progress >= 100) {
                 setShowLaunchScreen(false);
                 setIsLoading(false);
               }
-            }} 
+            }}
           />
         </SettingsProvider>
       </SafeAreaProvider>
@@ -581,4 +588,4 @@ function App() {
   );
 }
 
-export default App;
+export default withStallion(App);
