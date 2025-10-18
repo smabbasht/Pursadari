@@ -38,6 +38,10 @@ export class SyncManager {
     try {
       console.log('[SyncManager] Starting sync...');
 
+      // Ensure database is initialized
+      await database.init();
+      console.log('[SyncManager] Database initialized for sync');
+
       // Get last sync timestamp
       this.lastSyncTimestamp = await database.getLastSyncTimestamp();
       console.log('[SyncManager] Last sync timestamp:', this.lastSyncTimestamp);

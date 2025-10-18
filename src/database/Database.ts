@@ -70,11 +70,13 @@ class Database {
 
     this.initPromise = (async () => {
       try {
+        console.log('[Database] Opening database...');
         this.db = await SQLite.openDatabase({
           name: 'database.sqlite',
           createFromLocation: '~www/database.sqlite',
           location: 'default',
         });
+        console.log('[Database] Database opened successfully');
 
         // Create settings table if it doesn't exist
         await this.db.executeSql(`
@@ -85,35 +87,30 @@ class Database {
           )
         `);
 
-        // Create favourites table if it doesn't exist
+        // Create favourites table if it doesn't exist (with pin column)
         await this.db.executeSql(`
           CREATE TABLE IF NOT EXISTS favourites (
             kalaam_id INTEGER PRIMARY KEY,
-            created_at DATETIME
+            created_at DATETIME,
+            pinned BOOLEAN DEFAULT FALSE
           )
         `);
 
-        // Auto-favorite special content (Hadees e Kisa, Ziyarat Ashura)
-        // These IDs are negative and permanently favorited
-        await this.db.executeSql(`
-          INSERT OR IGNORE INTO favourites (kalaam_id, created_at)
-          VALUES (-1, datetime('now')), (-2, datetime('now'))
-        `);
+        // Check if this is first launch (favourites table is empty)
+        const [favouritesCheck] = await this.db.executeSql('SELECT COUNT(*) as count FROM favourites');
+        const favouritesCount = favouritesCheck.rows.item(0).count;
 
-        // Create pins table if it doesn't exist
-        await this.db.executeSql(`
-          CREATE TABLE IF NOT EXISTS pins (
-            kalaam_id INTEGER PRIMARY KEY,
-            created_at DATETIME
-          )
-        `);
+        // Only add special content on first launch
+        if (favouritesCount === 0) {
+          // Auto-favorite and pin special content (Hadees e Kisa, Ziyarat Ashura)
+          await this.db.executeSql(`
+            INSERT INTO favourites (kalaam_id, created_at, pinned)
+            VALUES ('-1', datetime('now'), 1), ('-2', datetime('now'), 1)
+          `);
+          console.log('[Database] Auto-favorited and pinned special content on first launch (Hadees e Kisa, Ziyarat Ashura)');
+        }
 
-        // Auto-pin special content (Hadees e Kisa, Ziyarat Ashura)
-        // These IDs are negative and permanently pinned
-        await this.db.executeSql(`
-          INSERT OR IGNORE INTO pins (kalaam_id, created_at)
-          VALUES (-1, datetime('now')), (-2, datetime('now'))
-        `);
+        // Special content (Hadees e Kisa, Ziyarat Ashura) already exists in kalaam table
 
         // Update kalaam table to include new fields if they don't exist
         await this.db.executeSql(`
@@ -161,6 +158,7 @@ class Database {
           );
         }
       } catch (error) {
+        console.error('[Database] Database initialization failed:', error);
         this.db = null;
         throw error;
       } finally {
@@ -334,7 +332,9 @@ class Database {
 
   async getKalaamById(id: number): Promise<Kalaam | null> {
     const db = this.ensureInitialized();
-    const [result] = await db.executeSql('SELECT * FROM kalaam WHERE id = ?', [id]);
+    console.log('[Database] getKalaamById called with id:', id, 'type:', typeof id);
+    const [result] = await db.executeSql('SELECT * FROM kalaam WHERE id = ?', [id.toString()]);
+    console.log('[Database] getKalaamById result rows:', result.rows.length);
     return result.rows.length > 0 ? result.rows.item(0) : null;
   }
 

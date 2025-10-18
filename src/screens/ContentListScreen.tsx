@@ -428,7 +428,7 @@ export default function ContentListScreen() {
                             size={14}
                             color={t.textMuted}
                           />
-                          <Text style={[styles.metaText, { color: t.textMuted }]}>{k.reciter}</Text>
+                          <Text style={[styles.metaText, { color: t.textMuted }]} numberOfLines={1} ellipsizeMode="tail">{k.reciter}</Text>
                         </View>
                       ) : null}
                       {contentType === 'masaib' && k.poet ? (
@@ -438,7 +438,7 @@ export default function ContentListScreen() {
                             size={14}
                             color={t.textMuted}
                           />
-                          <Text style={[styles.metaText, { color: t.textMuted }]}>{k.poet}</Text>
+                          <Text style={[styles.metaText, { color: t.textMuted }]} numberOfLines={1} ellipsizeMode="tail">{k.poet}</Text>
                         </View>
                       ) : null}
                       
@@ -449,7 +449,7 @@ export default function ContentListScreen() {
                             size={14}
                             color={t.textMuted}
                           />
-                          <Text style={[styles.metaText, { color: t.textMuted }]}>{k.reciter}</Text>
+                          <Text style={[styles.metaText, { color: t.textMuted }]} numberOfLines={1} ellipsizeMode="tail">{k.reciter}</Text>
                         </View>
                       ) : null}
                       {contentType === 'poet' && k.masaib ? (
@@ -459,7 +459,7 @@ export default function ContentListScreen() {
                             size={14}
                             color={t.textMuted}
                           />
-                          <Text style={[styles.metaText, { color: t.textMuted }]}>{k.masaib}</Text>
+                          <Text style={[styles.metaText, { color: t.textMuted }]} numberOfLines={1} ellipsizeMode="tail">{k.masaib}</Text>
                         </View>
                       ) : null}
                       
@@ -470,7 +470,7 @@ export default function ContentListScreen() {
                             size={14}
                             color={t.textMuted}
                           />
-                          <Text style={[styles.metaText, { color: t.textMuted }]}>{k.poet}</Text>
+                          <Text style={[styles.metaText, { color: t.textMuted }]} numberOfLines={1} ellipsizeMode="tail">{k.poet}</Text>
                         </View>
                       ) : null}
                       {contentType === 'reciter' && k.masaib ? (
@@ -480,7 +480,7 @@ export default function ContentListScreen() {
                             size={14}
                             color={t.textMuted}
                           />
-                          <Text style={[styles.metaText, { color: t.textMuted }]}>{k.masaib}</Text>
+                          <Text style={[styles.metaText, { color: t.textMuted }]} numberOfLines={1} ellipsizeMode="tail">{k.masaib}</Text>
                         </View>
                       ) : null}
                     </View>

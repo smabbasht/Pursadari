@@ -58,6 +58,11 @@ export default function FavouritesScreen() {
           if (a.id < 0 && b.id >= 0) return -1;
           if (a.id >= 0 && b.id < 0) return 1;
           
+          // Within special content, Hadees e Kisa (-1) comes before Ziyarat Ashura (-2)
+          if (a.id < 0 && b.id < 0) {
+            return a.id - b.id; // -1 comes before -2
+          }
+          
           // Within non-special content, sort by pinned status
           if (a.id >= 0 && b.id >= 0) {
             const aPinned = pinned.some(p => p.id === a.id);
@@ -177,38 +182,55 @@ export default function FavouritesScreen() {
                     {k.reciter ? (
                       <View style={styles.metaChip}>
                         <MaterialCommunityIcons name="account-music" size={14} color={t.textMuted} />
-                        <Text style={[styles.metaText, { color: t.textMuted }]}>{k.reciter}</Text>
+                        <Text style={[styles.metaText, { color: t.textMuted }]} numberOfLines={1} ellipsizeMode="tail">{k.reciter}</Text>
                       </View>
                     ) : null}
                     {k.poet ? (
                       <View style={styles.metaChip}>
                         <MaterialCommunityIcons name="feather" size={14} color={t.textMuted} />
-                        <Text style={[styles.metaText, { color: t.textMuted }]}>{k.poet}</Text>
+                        <Text style={[styles.metaText, { color: t.textMuted }]} numberOfLines={1} ellipsizeMode="tail">{k.poet}</Text>
                       </View>
                     ) : null}
                   </View>
                 </TouchableOpacity>
-                {/* Hide pin/remove buttons for special content (Hadees e Kisa, Ziyarat Ashura) */}
-                {k.id >= 0 && (
-                  <View style={styles.actionButtons}>
-                    <TouchableOpacity 
-                      onPress={() => togglePin(k.id)}
-                      style={styles.pinButton}
-                    >
-                      <MaterialCommunityIcons 
-                        name={pinStates[k.id] ? "pin" : "pin-outline"} 
-                        size={20} 
-                        color={pinStates[k.id] ? accentColor : t.textMuted} 
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      onPress={() => remove(k)}
-                      style={styles.removeButton}
-                    >
-                      <MaterialCommunityIcons name="minus-circle" size={20} color={t.danger} />
-                    </TouchableOpacity>
-                  </View>
-                )}
+                {/* Action buttons for all items */}
+                <View style={styles.actionButtons}>
+                  {k.id >= 0 ? (
+                    // Regular items - functional buttons
+                    <>
+                      <TouchableOpacity 
+                        onPress={() => togglePin(k.id)}
+                        style={styles.pinButton}
+                      >
+                        <MaterialCommunityIcons 
+                          name={pinStates[k.id] ? "pin" : "pin-outline"} 
+                          size={20} 
+                          color={pinStates[k.id] ? accentColor : t.textMuted} 
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        onPress={() => remove(k)}
+                        style={styles.removeButton}
+                      >
+                        <MaterialCommunityIcons name="minus-circle" size={20} color={t.danger} />
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    // Special content - visual-only buttons
+                    <>
+                      <View style={styles.pinButton}>
+                        <MaterialCommunityIcons 
+                          name="pin" 
+                          size={20} 
+                          color={accentColor} 
+                        />
+                      </View>
+                      <View style={styles.removeButton}>
+                        <MaterialCommunityIcons name="heart" size={20} color={accentColor} />
+                      </View>
+                    </>
+                  )}
+                </View>
               </View>
             ))}
             {nextPageLoading && (

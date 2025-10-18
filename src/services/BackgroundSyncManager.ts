@@ -11,7 +11,8 @@ export class BackgroundSyncManager {
   private readonly STORAGE_KEY = 'last_background_sync';
 
   constructor() {
-    this.initializeBackgroundSync();
+    // Disabled auto-sync for first release
+    // this.initializeBackgroundSync();
   }
 
   private async initializeBackgroundSync(): Promise<void> {
@@ -108,6 +109,14 @@ export class BackgroundSyncManager {
   }
 }
 
-// Export singleton instance
-export const backgroundSyncManager = new BackgroundSyncManager();
+// Export singleton instance (lazy-loaded to prevent auto-sync)
+let _backgroundSyncManager: BackgroundSyncManager | null = null;
+
+export const backgroundSyncManager = (): BackgroundSyncManager => {
+  if (!_backgroundSyncManager) {
+    _backgroundSyncManager = new BackgroundSyncManager();
+  }
+  return _backgroundSyncManager;
+};
+
 export default backgroundSyncManager;

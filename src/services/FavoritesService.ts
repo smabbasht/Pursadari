@@ -5,42 +5,25 @@ import database from '../database/Database';
 /**
  * Favorites Service
  * 
- * This service manages user favorites using SQLite for persistence.
+ * This service manages user favorites using SQLite database table for persistence.
  * It provides methods to add, remove, check, and retrieve favorite kalaams.
- * The actual kalaam data is fetched from the database service.
+ * Pinned items stay at the top, ordered by when they were pinned.
  */
 class FavoritesService {
-  private static FAVORITES_KEY = 'user_favorites';
-  private static PINS_KEY = 'user_pins';
-  private static MAX_PINS = 3;
-
-  private static async getFavoritesList(): Promise<number[]> {
-    const favoritesStr = await database.getSetting(this.FAVORITES_KEY);
-    return favoritesStr ? JSON.parse(favoritesStr) : [];
-  }
-
-  private static async saveFavoritesList(favorites: number[]): Promise<void> {
-    await database.setSetting(this.FAVORITES_KEY, JSON.stringify(favorites));
-  }
-
-  private static async getPinsList(): Promise<number[]> {
-    const pinsStr = await database.getSetting(this.PINS_KEY);
-    return pinsStr ? JSON.parse(pinsStr) : [];
-  }
-
-  private static async savePinsList(pins: number[]): Promise<void> {
-    await database.setSetting(this.PINS_KEY, JSON.stringify(pins));
-  }
 
   /**
    * Add a kalaam to favorites
    */
   static async addFavorite(kalaamId: number): Promise<void> {
-    const favorites = await this.getFavoritesList();
-    if (!favorites.includes(kalaamId)) {
-      favorites.push(kalaamId);
-      await this.saveFavoritesList(favorites);
-    }
+    console.log('[FavoritesService] addFavorite called with id:', kalaamId, 'type:', typeof kalaamId);
+    const db = database.ensureInitialized();
+    const stringId = kalaamId.toString();
+    console.log('[FavoritesService] Converting to string ID:', stringId);
+    await db.executeSql(`
+      INSERT OR IGNORE INTO favourites (kalaam_id, created_at, pinned)
+      VALUES (?, datetime('now'), 0)
+    `, [stringId]);
+    console.log('[FavoritesService] addFavorite completed for id:', stringId);
   }
 
   /**
@@ -53,38 +36,42 @@ class FavoritesService {
       return;
     }
     
-    const favorites = await this.getFavoritesList();
-    const index = favorites.indexOf(kalaamId);
-    if (index !== -1) {
-      favorites.splice(index, 1);
-      await this.saveFavoritesList(favorites);
-    }
+    const db = database.ensureInitialized();
+    await db.executeSql('DELETE FROM favourites WHERE kalaam_id = ?', [kalaamId.toString()]);
   }
 
   /**
    * Check if a kalaam is favorited
    */
   static async isFavorite(kalaamId: number): Promise<boolean> {
-    const favorites = await this.getFavoritesList();
-    return favorites.includes(kalaamId);
+    console.log('[FavoritesService] isFavorite called with id:', kalaamId, 'type:', typeof kalaamId);
+    const db = database.ensureInitialized();
+    const stringId = kalaamId.toString();
+    console.log('[FavoritesService] Checking favorite for string ID:', stringId);
+    const [result] = await db.executeSql('SELECT COUNT(*) as count FROM favourites WHERE kalaam_id = ?', [stringId]);
+    const isFav = result.rows.item(0).count > 0;
+    console.log('[FavoritesService] isFavorite result:', isFav, 'for id:', stringId);
+    return isFav;
   }
 
   /**
-   * Pin a kalaam (max 3 pins allowed)
+   * Pin a kalaam (updates existing favorite or creates new one)
    */
   static async pinKalaam(kalaamId: number): Promise<boolean> {
-    const pins = await this.getPinsList();
+    const db = database.ensureInitialized();
     
-    if (pins.includes(kalaamId)) {
+    // Check if already pinned
+    const [checkResult] = await db.executeSql('SELECT pinned FROM favourites WHERE kalaam_id = ?', [kalaamId.toString()]);
+    if (checkResult.rows.length > 0 && checkResult.rows.item(0).pinned) {
       return false; // Already pinned
     }
     
-    if (pins.length >= this.MAX_PINS) {
-      return false; // Max pins reached
-    }
+    // Update existing favorite or insert new one
+    await db.executeSql(`
+      INSERT OR REPLACE INTO favourites (kalaam_id, created_at, pinned)
+      VALUES (?, datetime('now'), 1)
+    `, [kalaamId.toString()]);
     
-    pins.push(kalaamId);
-    await this.savePinsList(pins);
     return true;
   }
 
@@ -98,20 +85,17 @@ class FavoritesService {
       return;
     }
     
-    const pins = await this.getPinsList();
-    const index = pins.indexOf(kalaamId);
-    if (index !== -1) {
-      pins.splice(index, 1);
-      await this.savePinsList(pins);
-    }
+    const db = database.ensureInitialized();
+    await db.executeSql('UPDATE favourites SET pinned = 0 WHERE kalaam_id = ?', [kalaamId.toString()]);
   }
 
   /**
    * Check if a kalaam is pinned
    */
   static async isPinned(kalaamId: number): Promise<boolean> {
-    const pins = await this.getPinsList();
-    return pins.includes(kalaamId);
+    const db = database.ensureInitialized();
+    const [result] = await db.executeSql('SELECT pinned FROM favourites WHERE kalaam_id = ?', [kalaamId.toString()]);
+    return result.rows.length > 0 && result.rows.item(0).pinned === 1;
   }
 
   /**
@@ -119,34 +103,81 @@ class FavoritesService {
    */
   static async getPinnedKalaams(): Promise<Kalaam[]> {
     try {
-      const pinIds = await this.getPinsList();
+      console.log('[FavoritesService] getPinnedKalaams called');
+      const db = database.ensureInitialized();
       
-      if (pinIds.length === 0) {
+      // Get pinned kalaams ordered by created_at
+      const [result] = await db.executeSql(`
+        SELECT kalaam_id FROM favourites 
+        WHERE pinned = 1 
+        ORDER BY created_at ASC
+      `);
+
+      console.log('[FavoritesService] Found', result.rows.length, 'pinned kalaams');
+
+      const pinnedIds: number[] = [];
+      for (let i = 0; i < result.rows.length; i++) {
+        const row = result.rows.item(i);
+        console.log('[FavoritesService] Pinned row:', row);
+        // Convert string ID back to number for getKalaamById
+        const numId = parseInt(row.kalaam_id);
+        pinnedIds.push(numId);
+        console.log('[FavoritesService] Converted pinned string ID', row.kalaam_id, 'to number ID', numId);
+      }
+
+      if (pinnedIds.length === 0) {
+        console.log('[FavoritesService] No pinned kalaams found');
         return [];
       }
 
       // Fetch kalaams by IDs
-      const promises = pinIds.map(id => database.getKalaamById(id));
+      console.log('[FavoritesService] Fetching pinned kalaams for IDs:', pinnedIds);
+      const promises = pinnedIds.map(id => database.getKalaamById(id));
       const kalaams = (await Promise.all(promises)).filter((k): k is Kalaam => k !== null);
+      console.log('[FavoritesService] Successfully fetched', kalaams.length, 'pinned kalaams');
       
       return kalaams;
     } catch (error) {
-      console.error('Error getting pinned kalaams:', error);
+      console.error('[FavoritesService] Error getting pinned kalaams:', error);
       return [];
     }
   }
 
   /**
-   * Get all favorite kalaams with pagination
+   * Get all favorite kalaams with pinned items at the top
    */
   static async getFavoriteKalaams(
     limit: number = 50,
     startAfterDoc?: any
   ): Promise<KalaamListResponse> {
     try {
-      const favoriteIds = await this.getFavoritesList();
+      console.log('[FavoritesService] getFavoriteKalaams called with limit:', limit);
+      const db = database.ensureInitialized();
       
+      // Get favorites ordered by pinned first, then by created_at
+      const [result] = await db.executeSql(`
+        SELECT kalaam_id, pinned, created_at 
+        FROM favourites 
+        ORDER BY pinned DESC, created_at ASC
+        LIMIT ?
+      `, [limit]);
+
+      console.log('[FavoritesService] Found', result.rows.length, 'favorites in database');
+
+      const favoriteIds: number[] = [];
+      for (let i = 0; i < result.rows.length; i++) {
+        const row = result.rows.item(i);
+        console.log('[FavoritesService] Favorite row:', row);
+        // Convert string ID back to number for getKalaamById
+        const numId = parseInt(row.kalaam_id);
+        favoriteIds.push(numId);
+        console.log('[FavoritesService] Converted string ID', row.kalaam_id, 'to number ID', numId);
+      }
+
+      console.log('[FavoritesService] Favorite IDs to fetch:', favoriteIds);
+
       if (favoriteIds.length === 0) {
+        console.log('[FavoritesService] No favorites found, returning empty result');
         return {
           kalaams: [],
           total: 0,
@@ -157,8 +188,10 @@ class FavoritesService {
       }
 
       // Fetch kalaams by IDs
+      console.log('[FavoritesService] Fetching kalaams for IDs:', favoriteIds);
       const promises = favoriteIds.map(id => database.getKalaamById(id));
       const kalaams = (await Promise.all(promises)).filter((k): k is Kalaam => k !== null);
+      console.log('[FavoritesService] Successfully fetched', kalaams.length, 'kalaams');
 
       return {
         kalaams,
@@ -168,7 +201,7 @@ class FavoritesService {
         lastVisibleDoc: null
       };
     } catch (error) {
-      console.error('Error getting favorite kalaams:', error);
+      console.error('[FavoritesService] Error getting favorite kalaams:', error);
       return {
         kalaams: [],
         total: 0,

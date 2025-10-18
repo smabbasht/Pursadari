@@ -9,8 +9,9 @@ export class ForegroundSyncManager {
   private isInitialized: boolean = false;
 
   constructor() {
-    this.setupNetworkListener();
-    this.setupAppStateListener();
+    // Disabled auto-sync for first release
+    // this.setupNetworkListener();
+    // this.setupAppStateListener();
     this.initializeNotificationService();
   }
 
@@ -108,6 +109,14 @@ export class ForegroundSyncManager {
   }
 }
 
-// Export singleton instance
-export const foregroundSyncManager = new ForegroundSyncManager();
+// Export singleton instance (lazy-loaded to prevent auto-sync)
+let _foregroundSyncManager: ForegroundSyncManager | null = null;
+
+export const foregroundSyncManager = (): ForegroundSyncManager => {
+  if (!_foregroundSyncManager) {
+    _foregroundSyncManager = new ForegroundSyncManager();
+  }
+  return _foregroundSyncManager;
+};
+
 export default foregroundSyncManager;

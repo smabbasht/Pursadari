@@ -30,8 +30,8 @@ const UR_PREVIEW = 'آؤ رو لیں شہِ کربلا کو';
 // Curated color palette as requested
 const PALETTE = [
   '#8b5cf6', // Purple
-  '#0ea5e9', // Light Blue
   '#3b82f6', // Blue
+  '#0ea5e9', // Light Blue
   '#16a34a', // Green
   '#f59e0b', // Mustardish Yellow
   '#ef4444', // Red
@@ -131,7 +131,7 @@ export default function SettingsScreen() {
     setSyncStatus('Syncing...');
     
     try {
-      const result: SyncResult = await foregroundSyncManager.performManualSync();
+      const result: SyncResult = await foregroundSyncManager().performManualSync();
       
       if (result.success) {
         setSyncStatus(`Synced ${result.recordsProcessed} records (${result.activeRecords} new, ${result.deletedRecords} deleted)`);

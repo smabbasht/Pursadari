@@ -186,7 +186,7 @@ export default function SearchScreen() {
             color={t.textMuted}
           />
           <TextInput
-            placeholder="Search titles, lyrics, or any text..."
+            placeholder="Search titles, lyrics, etc..."
             style={[
               styles.input,
               { color: t.textPrimary, backgroundColor: t.surface },
