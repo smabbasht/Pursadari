@@ -21,7 +21,6 @@ android {
     versionCode 3
     versionName "0.1.0"
     buildConfigField "boolean", "IS_HERMES_ENABLED", "true"
-    // applicationIdSuffix ".debug"
   }
 
   signingConfigs {
@@ -35,7 +34,7 @@ android {
       def f = rootProject.file("keystore.properties")
       if (f.exists()) {
         def p = new Properties(); p.load(new FileInputStream(f))
-        storeFile file(p["storeFile"])
+        storeFile rootProject.file(p["storeFile"]) 
         storePassword p["storePassword"]
         keyAlias p["keyAlias"]
         keyPassword p["keyPassword"]
@@ -44,16 +43,26 @@ android {
   }
 
   buildTypes {
-    debug  { signingConfig = signingConfigs.debug }
+    debug {
+      applicationIdSuffix ""
+      debuggable true
+      signingConfig signingConfigs.debug
+    }
     release {
-      signingConfig = signingConfigs.release
-      minifyEnabled = true
-      shrinkResources = true
-      proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+      minifyEnabled true
+      proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+      signingConfig signingConfigs.release
     }
   }
 
+
   buildFeatures { buildConfig = true }
+}
+
+repositories {
+  google()
+  mavenCentral()
+  gradlePluginPortal()
 }
 
 dependencies {

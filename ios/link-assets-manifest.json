@@ -76,6 +76,414 @@
     {
       "path": "node_modules/react-native-vector-icons/Fonts/Zocial.ttf",
       "sha1": "6a48a962b06cc3acbdfd61df0d9a34744eea5e8d"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Noto_Nastaliq_Urdu/static/NotoNastaliqUrdu-Bold.ttf",
+      "sha1": "a6d374df9dbe4b78384982feca7fbe21c7ea380a"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Noto_Nastaliq_Urdu/static/NotoNastaliqUrdu-Medium.ttf",
+      "sha1": "e89cbdd9762fd327164e7adbdf3f38136c242f45"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Noto_Nastaliq_Urdu/static/NotoNastaliqUrdu-Regular.ttf",
+      "sha1": "01c56a897912a41f5ae615129a5f01bec20d2c8c"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Noto_Nastaliq_Urdu/static/NotoNastaliqUrdu-SemiBold.ttf",
+      "sha1": "0c1d2879b6f60f2ba68ec5b3286a8d27cc8461dd"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans-Bold.ttf",
+      "sha1": "c7e6b913f990299fcc5928f4581727972e869727"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans-BoldItalic.ttf",
+      "sha1": "9debf2df5b0781ea1c8c47f094307f716f596503"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans-ExtraBold.ttf",
+      "sha1": "725bb4afb0eb261acea24bd8dc6d1fc106fb9890"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans-ExtraBoldItalic.ttf",
+      "sha1": "607a8a75c425a86d2cc711660bf795743bf1012f"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans-Italic.ttf",
+      "sha1": "2ea6568cd9ed07c8b1f0bbf148dd2ab9a9fc4f0d"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans-Light.ttf",
+      "sha1": "6236023a78c3031a26e7093881cceeae50ad036f"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans-LightItalic.ttf",
+      "sha1": "2d42e7aedc1ae7b5b69db392d301b2f08a04c91b"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans-Medium.ttf",
+      "sha1": "1632123e8a78dd095fb987c0cb2ad05063e0648a"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans-MediumItalic.ttf",
+      "sha1": "cf830d27b664edac6d806b1fa75381e57bbd69e1"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans-Regular.ttf",
+      "sha1": "576aa669c4ceb3830fde859a4db52916def172af"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans-SemiBold.ttf",
+      "sha1": "344041aeaad9e07a186cc3a937df915e5d98936f"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans-SemiBoldItalic.ttf",
+      "sha1": "86464eed204f9a93cf74261b4694a16b2d437d10"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_Condensed-Bold.ttf",
+      "sha1": "0ae0e661c35da707c15d1363c1f9137c062fab23"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_Condensed-BoldItalic.ttf",
+      "sha1": "aee7adbd431dfcd3d477ef2fe5b0509b09f9143e"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_Condensed-ExtraBold.ttf",
+      "sha1": "04dcbe302c18c28467c870f7326bdb2369550ba7"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_Condensed-ExtraBoldItalic.ttf",
+      "sha1": "4e756a999a0fda04ee7df532c39cbc0d99a77e19"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_Condensed-Italic.ttf",
+      "sha1": "12cc243bd3c997dafa5fe28c1707b70ba05f8210"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_Condensed-Light.ttf",
+      "sha1": "cc2e5f86f31167086c0552035529f629ed640491"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_Condensed-LightItalic.ttf",
+      "sha1": "ff13672cc7f45ceea49fd24d34fd8ae26bbdc58b"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_Condensed-Medium.ttf",
+      "sha1": "2bd2fe4cdba1f199db1f7175031415173e25eac4"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_Condensed-MediumItalic.ttf",
+      "sha1": "94242d2e25482d62d753b72e2fcc412855494dbc"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_Condensed-Regular.ttf",
+      "sha1": "baa096bb85268118929b5580322a5581966b8859"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_Condensed-SemiBold.ttf",
+      "sha1": "4f998120039dfa065baa157386044e61832790be"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_Condensed-SemiBoldItalic.ttf",
+      "sha1": "c2cf35af4a2062c0279ecfac1be8cb10c5a64aa2"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_SemiCondensed-Bold.ttf",
+      "sha1": "9dc9230123de648a4692dca2f8cd18ec445be5a5"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_SemiCondensed-BoldItalic.ttf",
+      "sha1": "43410edbbfa14fa0beb57b0f923d925a1633f28b"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_SemiCondensed-ExtraBold.ttf",
+      "sha1": "d9d0cebe0a889e4947ecaed6bd619bdf67bcdb36"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_SemiCondensed-ExtraBoldItalic.ttf",
+      "sha1": "cfa88ed9fb4c380c698365f081d67272fbc705fe"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_SemiCondensed-Italic.ttf",
+      "sha1": "e71deba4604c128c5f29f459a2977bdef412b024"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_SemiCondensed-Light.ttf",
+      "sha1": "fe1c74e98c5f31474df9b7973eb841b547c3105e"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_SemiCondensed-LightItalic.ttf",
+      "sha1": "e5c8e0d3da15c9a335ebd3476a586595bd4ce049"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_SemiCondensed-Medium.ttf",
+      "sha1": "00b8dd3e5d4277add9185097dfb6991f7c06e537"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_SemiCondensed-MediumItalic.ttf",
+      "sha1": "0b1bb4b5be65582ef464df3d25f6d5a012b3a42f"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_SemiCondensed-Regular.ttf",
+      "sha1": "354c8ffc6903ffce35d6f07bef76a75ee4df3710"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_SemiCondensed-SemiBold.ttf",
+      "sha1": "065d100d5e542d2eaf63def6040b6feec668c238"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/static/OpenSans_SemiCondensed-SemiBoldItalic.ttf",
+      "sha1": "27a418a7fe75d0d4f1ec916e619aa5ca1edcf354"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-Black.ttf",
+      "sha1": "d1678489a8d5645f16486ec52d77b651ff0bf327"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-BlackItalic.ttf",
+      "sha1": "d1e14166c8226143eea1730d92f518cc47d03462"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-Bold.ttf",
+      "sha1": "783de2321d7e6d21f880a10437a9f2c7b45ed198"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-BoldItalic.ttf",
+      "sha1": "b67387bc3d4a1a80f03ad678d4808e72e4f34ae1"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-ExtraBold.ttf",
+      "sha1": "3dbfd71b6fbcfbd8e7ee8a8dd033dc5aaad63249"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-ExtraBoldItalic.ttf",
+      "sha1": "0c1a0709d9772d20419c1b5868d19631c63861f6"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-ExtraLight.ttf",
+      "sha1": "df556e64732e5c272349e13cb5f87591a1ae779b"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-ExtraLightItalic.ttf",
+      "sha1": "1b0b602c97a479fed89900c64a0b9242d459ed19"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-Italic.ttf",
+      "sha1": "55534e771bbbb6b649746802cabfdeb922b9eb3a"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-Light.ttf",
+      "sha1": "318b44c0a32848f78bf11d4fbf3355d00647a796"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-LightItalic.ttf",
+      "sha1": "565cd54ab54fdfa1be7c62fce75048d7ef0737e6"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-Medium.ttf",
+      "sha1": "fa5192203f85ddb667579e1bdf26f12098bb873b"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-MediumItalic.ttf",
+      "sha1": "debc1546314dd5655403df6965878d3f8dc41897"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-Regular.ttf",
+      "sha1": "3bff51436aa7eb995d84cfc592cc63e1316bb400"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-SemiBold.ttf",
+      "sha1": "9ca139684fe902c8310dd82991648376ac9838db"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-SemiBoldItalic.ttf",
+      "sha1": "21a14c8c35225cbd714af050086d3b17a1ae5df8"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-Thin.ttf",
+      "sha1": "8e098a207d2ace83e873d02b76acba903d819f74"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto-ThinItalic.ttf",
+      "sha1": "b20989b4dd1168286dca1f24193fe78f51e60f6b"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-Black.ttf",
+      "sha1": "317f765e1f770c422243ccdd7d0b8cf408c58db4"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-BlackItalic.ttf",
+      "sha1": "c367cbc303fe3adeaad06573145ece206edca674"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-Bold.ttf",
+      "sha1": "bfbddf1f6c0e0fcbb113e4f35fec60fa74a149ba"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-BoldItalic.ttf",
+      "sha1": "cb72d56bc80e8a7e32170fb66d2f886cc75638b5"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-ExtraBold.ttf",
+      "sha1": "e409e2cdf444475cafdb76c5ae26721e96483553"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-ExtraBoldItalic.ttf",
+      "sha1": "95500c4ad3305d0843fcce607e0748491f6b74f1"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-ExtraLight.ttf",
+      "sha1": "1cc9dfa74b6f7f11dc088c87b552db211cc3db5a"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-ExtraLightItalic.ttf",
+      "sha1": "cdb48490a752e60e2b15da5be3aec5cd061bdacd"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-Italic.ttf",
+      "sha1": "24b1d43d5a9474855065b0386695797ebca6d1bc"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-Light.ttf",
+      "sha1": "1daf12253cbd45c84a4f3b04d2ccea83d40446cb"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-LightItalic.ttf",
+      "sha1": "5c9b814f3127d42fdc32de6ee147bf044cd00565"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-Medium.ttf",
+      "sha1": "6e28f96625b03352e78420c2971aafa972178e4a"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-MediumItalic.ttf",
+      "sha1": "a4841c5d941a921e5a9947b8d5796b090287239f"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-Regular.ttf",
+      "sha1": "8870afc8d2c6f82cd46dac833e8dc644bf6d771e"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-SemiBold.ttf",
+      "sha1": "d42a31da6b171049086ebf69625e842d0029c8cd"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-SemiBoldItalic.ttf",
+      "sha1": "7d0e59b4d6454f7169972e4185aba192090a4eea"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-Thin.ttf",
+      "sha1": "f9726bc1c50d46bbde3465a5f122d083a157c512"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_Condensed-ThinItalic.ttf",
+      "sha1": "08b7c9fbe3e6ecc218deac36bf85dc3d1eca75f5"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-Black.ttf",
+      "sha1": "082786ff6c5447dd71d84cd958ad49550e34e946"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-BlackItalic.ttf",
+      "sha1": "f8d806e89e03117842acf9201cb075d2462aa882"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-Bold.ttf",
+      "sha1": "e597ad80c774ee647c4491d257c8747fdd445de9"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-BoldItalic.ttf",
+      "sha1": "2eb09969691e6dcb81f301ff4268a698ec1ac52e"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-ExtraBold.ttf",
+      "sha1": "2f5bfa180dc855c534dc3b81a0b2b83738258c90"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-ExtraBoldItalic.ttf",
+      "sha1": "d48131390678773688a10df726b97738143762fc"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-ExtraLight.ttf",
+      "sha1": "b6acaaf04d5f10f75675165ff29f11abdc18d924"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-ExtraLightItalic.ttf",
+      "sha1": "807eaf704c7520261e58de03470f22f7e637e8f3"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-Italic.ttf",
+      "sha1": "9e565a7a8c94822df9ca33458f1ce1b97bd8d4b0"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-Light.ttf",
+      "sha1": "d93dc296870245c2226379caba0f56a9edfbff06"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-LightItalic.ttf",
+      "sha1": "069cfd565ba9a8ca8fa8bab6b3aaee1bf36ce9c8"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-Medium.ttf",
+      "sha1": "140d18a97327a31fa332b0a22a907cfccc809b25"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-MediumItalic.ttf",
+      "sha1": "ae767cd287317a77aabdb524dd556a0460d14888"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-Regular.ttf",
+      "sha1": "3b088ea557c90e6dbf60894e06ef934ede330106"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-SemiBold.ttf",
+      "sha1": "edc6d5cc92d79e84637a78cde2e3adfe4e085c2d"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-SemiBoldItalic.ttf",
+      "sha1": "ba86508b1d08f6e0e4ff2ca71b35521007ed9994"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-Thin.ttf",
+      "sha1": "efa3716adfba5bdb3ec38de4261c10c3c614ed51"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/static/Roboto_SemiCondensed-ThinItalic.ttf",
+      "sha1": "4015948dfdcc05da6c01e8950dc1f09bb0cc3ed0"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/JameelNooriNastaleeq.ttf",
+      "sha1": "fe328332fcbfca1084de9c60169e41395a8044db"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Noto_Nastaliq_Urdu/NotoNastaliqUrdu-VariableFont_wght.ttf",
+      "sha1": "6aa9c99c2446e1fdd306bebbb468fe66d9c0b56e"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Noto_Nastaliq_Urdu/OFL.txt",
+      "sha1": "f1a6d359331c9521385e12288faa3a9149ae8fd2"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Noto_Nastaliq_Urdu/README.txt",
+      "sha1": "abbdebe4e0b23c819aaa94c7c13cff578b030bc7"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/OpenSans-Italic-VariableFont_wdth,wght.ttf",
+      "sha1": "3a144c924d57b5180ace77735aa10b00742d7362"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf",
+      "sha1": "f60d7a8d3e964d894ddf2628508c5bf01e6b6239"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/Roboto-Italic-VariableFont_wdth,wght.ttf",
+      "sha1": "eb51d6042f676b736a552744a77dc352d92a08e1"
+    },
+    {
+      "path": "android/app/src/main/assets/fonts/Roboto/Roboto-VariableFont_wdth,wght.ttf",
+      "sha1": "6bd9646ab22c0301ce3adbfe8707213a67900404"
     }
   ]
 }
